@@ -132,6 +132,8 @@ def _seed():
     db.session.commit()
 
 
+# 👇 ESTO ES LO QUE CAMBIA - Crear la app global que Gunicorn necesita
+app = create_app()
+
 if __name__ == '__main__':
-    application = create_app()
-    application.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
