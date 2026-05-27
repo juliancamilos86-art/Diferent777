@@ -8,58 +8,96 @@
     <h1>Historial de Ventas</h1>
     <p>Todas las transacciones registradas</p>
   </div>
+  <div style="display:flex;gap:10px;">
+    <button onclick="exportToExcel()" class="btn btn-cyan">📊 Exportar Excel</button>
+    <button onclick="window.print()" class="btn btn-outline">🖨️ Imprimir</button>
+  </div>
 </div>
 
-<div class="grid-stats" style="grid-template-columns:repeat(4,1fr);">
-  <div class="stat-card gold"><div class="stat-label">Total Período</div><div class="stat-value gold">${{ "{:,.0f}".format(total_periodo).replace(',','.') }}</div></div>
-  <div class="stat-card cyan"><div class="stat-label">Transacciones</div><div class="stat-value cyan">{{ ventas|length }}</div></div>
-  <div class="stat-card green"><div class="stat-label">Ticket Promedio</div><div class="stat-value green">${{ "{:,.0f}".format(ticket_avg).replace(',','.') }}</div></div>
-  <div class="stat-card purple"><div class="stat-label">Productos Vendidos</div><div class="stat-value purple">{{ total_items }}</div></div>
+<!-- KPIs -->
+<div class="grid-stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+  <div class="stat-card gold">
+    <div class="stat-label">💰 Total Período</div>
+    <div class="stat-value gold">${{ "{:,.0f}".format(total_periodo).replace(',','.') if total_periodo else '0' }}</div>
+    <div class="stat-sub">en ventas</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-label">📊 Transacciones</div>
+    <div class="stat-value cyan">{{ ventas|length if ventas else 0 }}</div>
+    <div class="stat-sub">ventas completadas</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">🎫 Ticket Promedio</div>
+    <div class="stat-value green">${{ "{:,.0f}".format(ticket_avg).replace(',','.') if ticket_avg else '0' }}</div>
+    <div class="stat-sub">por transacción</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-label">📦 Productos Vendidos</div>
+    <div class="stat-value purple">{{ total_items if total_items else 0 }}</div>
+    <div class="stat-sub">unidades</div>
+  </div>
 </div>
 
-<!-- FILTERS -->
-<div class="card" style="margin-bottom:16px;padding:14px 16px;">
-  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-    <div>
-      <label class="form-label">Desde</label>
-      <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control">
+<!-- FILTERS AVANZADOS -->
+<div class="card" style="margin-bottom:20px;padding:20px;">
+  <form method="GET" id="filterForm" action="{{ url_for('ventas.historial') }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+      <div>
+        <label class="form-label">📅 Desde</label>
+        <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control" id="fecha_desde">
+      </div>
+      <div>
+        <label class="form-label">📅 Hasta</label>
+        <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control" id="fecha_hasta">
+      </div>
+      <div>
+        <label class="form-label">💳 Método de Pago</label>
+        <select name="metodo" class="form-control" id="metodo_pago">
+          <option value="">Todos</option>
+          <option value="efectivo" {{ 'selected' if metodo_seleccionado == 'efectivo' else '' }}>💵 Efectivo</option>
+          <option value="tarjeta" {{ 'selected' if metodo_seleccionado == 'tarjeta' else '' }}>💳 Tarjeta</option>
+          <option value="nequi" {{ 'selected' if metodo_seleccionado == 'nequi' else '' }}>📱 Nequi</option>
+          <option value="daviplata" {{ 'selected' if metodo_seleccionado == 'daviplata' else '' }}>📱 Daviplata</option>
+          <option value="transferencia" {{ 'selected' if metodo_seleccionado == 'transferencia' else '' }}>🏦 Transferencia</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">🏢 Sede</label>
+        <select name="sede" class="form-control" id="sede">
+          <option value="">Todas</option>
+          {% for sede in sedes %}
+          <option value="{{ sede.id }}" {{ 'selected' if sede_seleccionada|string == sede.id|string else '' }}>{{ sede.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
-    <div>
-      <label class="form-label">Hasta</label>
-      <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control">
-    </div>
-    <div>
-      <label class="form-label">Método de Pago</label>
-      <select name="metodo" class="form-control">
-        <option value="">Todos</option>
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-        <option value="nequi">Nequi</option>
-        <option value="daviplata">Daviplata</option>
-        <option value="transferencia">Transferencia</option>
-      </select>
-    </div>
-    <div>
-      <label class="form-label">Sede</label>
-      <select name="sede" class="form-control">
-        <option value="">Todas</option>
-        {% for sede in sedes %}<option value="{{ sede.id }}">{{ sede.nombre }}</option>{% endfor %}
-      </select>
-    </div>
-    <button type="submit" class="btn btn-outline">🔍 Filtrar</button>
-    <a href="{{ url_for('ventas.historial') }}" class="btn btn-outline">✕</a>
-    <!-- Quick filters -->
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <a href="{{ url_for('ventas.historial', desde=(now|string)[:10], hasta=(now|string)[:10]) if false else url_for('ventas.historial') }}" class="filter-chip" onclick="setToday(event)">Hoy</a>
-      <a href="#" class="filter-chip" onclick="setWeek(event)">Semana</a>
-      <a href="#" class="filter-chip" onclick="setMonth(event)">Mes</a>
+    <div style="display:flex;gap:10px;justify-content:space-between;margin-top:16px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-gold">🔍 Filtrar</button>
+        <a href="{{ url_for('ventas.historial') }}" class="btn btn-outline">🗑️ Limpiar filtros</a>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="filter-label">Rápidos:</span>
+        <a href="#" class="filter-chip" onclick="setToday(event)">Hoy</a>
+        <a href="#" class="filter-chip" onclick="setWeek(event)">Semana</a>
+        <a href="#" class="filter-chip" onclick="setMonth(event)">Mes</a>
+        <a href="#" class="filter-chip" onclick="setLastMonth(event)">Mes anterior</a>
+        <a href="#" class="filter-chip" onclick="setYear(event)">Este año</a>
+      </div>
     </div>
   </form>
 </div>
 
+<!-- TABLA DE VENTAS -->
 <div class="card">
-  <div class="table-wrap">
-    <table class="table">
+  <div class="card-header">
+    <span class="card-title">📋 Listado de Transacciones</span>
+    <span style="font-size:12px;color:var(--muted);">
+      Mostrando {{ ventas|length if ventas else 0 }} registros
+    </span>
+  </div>
+  <div class="table-wrap" style="overflow-x:auto;">
+    <table class="table" id="ventasTable">
       <thead>
         <tr>
           <th>Factura</th>
@@ -70,69 +108,278 @@
           <th>Descuento</th>
           <th>Total</th>
           <th>Vendedor</th>
+          <th>Sede</th>
           <th>Estado</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for v in ventas %}
-        <tr>
-          <td class="td-code">{{ v.numero_factura }}</td>
-          <td style="font-size:12px;white-space:nowrap;">{{ v.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
-          <td>
-            <div style="font-weight:600;font-size:13px;">{{ v.cliente_nombre }}</div>
-            {% if v.cliente_doc %}<div style="font-size:11px;color:var(--muted);">{{ v.cliente_doc }}</div>{% endif %}
+        <tr class="{{ 'row-anulada' if v.estado == 'anulada' else '' }}">
+          <td class="td-code">
+            <strong>{{ v.numero_factura }}</strong>
+            {% if v.estado == 'anulada' %}
+            <span class="badge badge-out" style="font-size:9px;">ANULADA</span>
+            {% endif %}
           </td>
-          <td style="font-size:12px;max-width:160px;">
+          <td style="font-size:12px;white-space:nowrap;">
+            {{ v.fecha.strftime('%d/%m/%Y') }}
+            <br><small style="color:var(--muted);">{{ v.fecha.strftime('%H:%M') }}</small>
+          </td>
+          <td>
+            <div style="font-weight:600;font-size:13px;">{{ v.cliente_nombre or 'Consumidor Final' }}</div>
+            {% if v.cliente_doc %}<div style="font-size:10px;color:var(--muted);">ID: {{ v.cliente_doc }}</div>{% endif %}
+          </td>
+          <td style="font-size:12px;max-width:180px;">
             {% for item in v.items[:2] %}
-              <div>{{ item.nombre_producto[:25] }}{% if item.nombre_producto|length > 25 %}...{% endif %} ×{{ item.cantidad }}</div>
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                {{ item.nombre_producto[:20] }}{% if item.nombre_producto|length > 20 %}...{% endif %} ×{{ item.cantidad }}
+              </div>
             {% endfor %}
-            {% if v.items|length > 2 %}<div style="color:var(--muted);">+{{ v.items|length - 2 }} más</div>{% endif %}
+            {% if v.items|length > 2 %}
+              <div style="color:var(--gold2);font-size:10px;">+{{ v.items|length - 2 }} productos más</div>
+            {% endif %}
           </td>
-          <td><span class="badge badge-gold" style="text-transform:capitalize;">{{ v.metodo_pago }}</span></td>
-          <td style="font-size:12px;">{% if v.descuento_pct > 0 %}<span style="color:var(--green);">{{ v.descuento_pct }}%</span>{% else %}—{% endif %}</td>
-          <td class="td-price">${{ "{:,.0f}".format(v.total).replace(',','.') }}</td>
+          <td>
+            <span class="badge badge-gold" style="text-transform:capitalize;background:rgba(212,160,23,0.2);">
+              {% if v.metodo_pago == 'efectivo' %}💵 Efectivo
+              {% elif v.metodo_pago == 'tarjeta' %}💳 Tarjeta
+              {% elif v.metodo_pago == 'nequi' %}📱 Nequi
+              {% elif v.metodo_pago == 'daviplata' %}📱 Daviplata
+              {% elif v.metodo_pago == 'transferencia' %}🏦 Transferencia
+              {% else %}{{ v.metodo_pago }}{% endif %}
+            </span>
+          </td>
+          <td style="font-size:12px;text-align:center;">
+            {% if v.descuento_pct and v.descuento_pct > 0 %}
+              <span style="color:var(--green);font-weight:bold;">{{ v.descuento_pct }}%</span>
+              <br><small style="color:var(--muted);">-${{ "{:,.0f}".format(v.descuento_monto).replace(',','.') }}</small>
+            {% else %}
+              <span style="color:var(--muted);">—</span>
+            {% endif %}
+          </td>
+          <td class="td-price" style="font-weight:700;font-size:16px;">
+            ${{ "{:,.0f}".format(v.total).replace(',','.') }}
+          </td>
           <td style="font-size:12px;">{{ v.usuario.nombre if v.usuario else '—' }}</td>
+          <td style="font-size:12px;">{{ v.sede.nombre if v.sede else '—' }}</td>
           <td>
-            {% if v.estado == 'completada' %}<span class="badge badge-ok">Completada</span>
-            {% else %}<span class="badge badge-out">Anulada</span>{% endif %}
+            {% if v.estado == 'completada' %}
+              <span class="badge badge-ok" style="background:rgba(0,230,118,0.2);color:#00e676;">✓ Completada</span>
+            {% else %}
+              <span class="badge badge-out" style="background:rgba(244,67,54,0.2);color:#ff4081;">✗ Anulada</span>
+            {% endif %}
           </td>
           <td>
-            <div style="display:flex;gap:6px;">
-              <a href="{{ url_for('ventas.ver_factura', vid=v.id) }}" target="_blank" class="btn btn-cyan btn-sm">🧾</a>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <a href="{{ url_for('ventas.ver_factura', vid=v.id) }}" target="_blank" class="btn btn-cyan btn-sm" title="Ver factura">
+                🧾
+              </a>
               {% if v.estado == 'completada' and current_user.rol == 'admin' %}
-              <form method="POST" action="{{ url_for('ventas.anular_venta', vid=v.id) }}" onsubmit="return confirm('¿Anular esta venta y restaurar stock?')">
-                <button type="submit" class="btn btn-danger btn-sm">✕</button>
+              <form method="POST" action="{{ url_for('ventas.anular_venta', vid=v.id) }}" 
+                    onsubmit="return confirm('⚠️ ¿Estás seguro de anular esta venta?\n\nSe restituirá el stock de los productos.\nEsta acción no se puede deshacer.');"
+                    style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm" title="Anular venta">
+                  ✕
+                </button>
               </form>
               {% endif %}
             </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Sin ventas en este período</td></tr>
+        <tr>
+          <td colspan="11" style="text-align:center;padding:60px;color:var(--muted);">
+            <div style="font-size:48px;margin-bottom:16px;">📭</div>
+            <div style="font-size:16px;">No hay ventas en este período</div>
+            <div style="font-size:12px;margin-top:8px;">Prueba cambiando los filtros o realiza tu primera venta desde el POS</div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
-    </table>
+     </table>
+  </div>
+  
+  <!-- Paginación -->
+  {% if ventas and ventas|length > 0 %}
+  <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);">
+    <div style="font-size:12px;color:var(--muted);">
+      Mostrando {{ ventas|length }} ventas
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="window.scrollTo(0,0)" class="btn btn-sm btn-outline">⬆️ Arriba</button>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Resumen adicional -->
+<div class="grid-2" style="gap:16px;margin-top:20px;">
+  <div class="card">
+    <div class="card-title">📊 Resumen por Método de Pago</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+      {% set metodos_resumen = {} %}
+      {% for v in ventas %}
+        {% if v.estado == 'completada' %}
+          {% set _ = metodos_resumen.update({v.metodo_pago: metodos_resumen.get(v.metodo_pago, 0) + v.total}) %}
+        {% endif %}
+      {% endfor %}
+      {% for metodo, total in metodos_resumen.items() %}
+      <div style="padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;">
+        <div style="font-size:11px;color:var(--muted);">{{ metodo|capitalize }}</div>
+        <div style="font-size:14px;font-weight:bold;color:var(--gold2);">${{ "{:,.0f}".format(total).replace(',','.') }}</div>
+      </div>
+      {% endfor %}
+      {% if not metodos_resumen %}
+      <div style="color:var(--muted);text-align:center;padding:20px;">Sin datos</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">💡 Consejos</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+      • Usa los filtros para buscar ventas por período<br>
+      • Haz clic en 🧾 para ver/imprimir la factura<br>
+      • Solo administradores pueden anular ventas<br>
+      • Al anular una venta, el stock se restaura automáticamente
+    </div>
   </div>
 </div>
 
 <script>
+// Funciones de filtros rápidos
 function setToday(e) {
   e.preventDefault();
-  const t = new Date().toISOString().slice(0,10);
-  window.location.href = `{{ url_for('ventas.historial') }}?desde=${t}&hasta=${t}`;
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('fecha_desde').value = today;
+  document.getElementById('fecha_hasta').value = today;
+  document.getElementById('filterForm').submit();
 }
+
 function setWeek(e) {
   e.preventDefault();
-  const to = new Date().toISOString().slice(0,10);
-  const from = new Date(Date.now()-7*86400000).toISOString().slice(0,10);
-  window.location.href = `{{ url_for('ventas.historial') }}?desde=${from}&hasta=${to}`;
+  const to = new Date();
+  const from = new Date();
+  from.setDate(to.getDate() - 7);
+  document.getElementById('fecha_desde').value = from.toISOString().slice(0,10);
+  document.getElementById('fecha_hasta').value = to.toISOString().slice(0,10);
+  document.getElementById('filterForm').submit();
 }
+
 function setMonth(e) {
   e.preventDefault();
-  const to = new Date().toISOString().slice(0,10);
-  const from = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
-  window.location.href = `{{ url_for('ventas.historial') }}?desde=${from}&hasta=${to}`;
+  const to = new Date();
+  const from = new Date();
+  from.setDate(to.getDate() - 30);
+  document.getElementById('fecha_desde').value = from.toISOString().slice(0,10);
+  document.getElementById('fecha_hasta').value = to.toISOString().slice(0,10);
+  document.getElementById('filterForm').submit();
 }
+
+function setLastMonth(e) {
+  e.preventDefault();
+  const to = new Date();
+  const from = new Date();
+  to.setDate(1);
+  to.setDate(0);
+  from.setDate(1);
+  from.setMonth(from.getMonth() - 1);
+  document.getElementById('fecha_desde').value = from.toISOString().slice(0,10);
+  document.getElementById('fecha_hasta').value = to.toISOString().slice(0,10);
+  document.getElementById('filterForm').submit();
+}
+
+function setYear(e) {
+  e.preventDefault();
+  const to = new Date();
+  const from = new Date();
+  from.setMonth(0, 1);
+  document.getElementById('fecha_desde').value = from.toISOString().slice(0,10);
+  document.getElementById('fecha_hasta').value = to.toISOString().slice(0,10);
+  document.getElementById('filterForm').submit();
+}
+
+// Exportar a Excel
+function exportToExcel() {
+  const params = new URLSearchParams(window.location.search);
+  window.location.href = `/ventas/exportar/excel?${params.toString()}`;
+}
+
+// Tooltips al pasar el mouse
+document.addEventListener('DOMContentLoaded', function() {
+  const rows = document.querySelectorAll('.table tbody tr');
+  rows.forEach(row => {
+    row.addEventListener('click', function(e) {
+      if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+        const facturaLink = this.querySelector('a[href*="factura"]');
+        if (facturaLink) {
+          window.open(facturaLink.href, '_blank');
+        }
+      }
+    });
+    row.style.cursor = 'pointer';
+  });
+});
 </script>
+
+<style>
+.row-anulada {
+  opacity: 0.7;
+  background: rgba(244,67,54,0.05);
+}
+
+.row-anulada:hover {
+  opacity: 0.9;
+}
+
+.filter-label {
+  font-size: 12px;
+  color: var(--muted);
+  align-self: center;
+}
+
+.filter-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 11px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.filter-chip:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #000;
+}
+
+.td-price {
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  color: var(--gold2);
+}
+
+.td-code {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media print {
+  .btn, .filter-chip, .card-header a, .page-header button, .card-footer {
+    display: none;
+  }
+  .card {
+    break-inside: avoid;
+    border: none;
+  }
+  .row-anulada {
+    opacity: 1;
+  }
+}
+</style>
 {% endblock %}
