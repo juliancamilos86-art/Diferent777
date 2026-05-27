@@ -1,12 +1,11 @@
 from flask import Blueprint, render_template, request, send_file
-from flask_login import login_required
-from models import db, Venta, ItemVenta, Producto, Sede
+from flask_login import login_required, current_user
+from models import db, Venta, ItemVenta, Producto, Sede, Categoria
 from datetime import datetime, timedelta
 from sqlalchemy import func
 import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-import pandas as pd
 
 reportes_bp = Blueprint('reportes', __name__)
 
@@ -25,8 +24,8 @@ def _period_dates(periodo, meses=1):
 @reportes_bp.route('/reportes')
 @login_required
 def reportes():
-    periodo  = request.args.get('periodo', 'mes')
-    meses    = request.args.get('meses', '1')
+    periodo = request.args.get('periodo', 'mes')
+    meses = request.args.get('meses', '1')
     desde_str = request.args.get('desde', '')
     hasta_str = request.args.get('hasta', '')
 
@@ -36,83 +35,103 @@ def reportes():
     else:
         fecha_desde, fecha_hasta = _period_dates(periodo, meses)
 
+    # Obtener ventas del período
     ventas = Venta.query.filter(
-        Venta.fecha >= fecha_desde, Venta.fecha < fecha_hasta,
+        Venta.fecha >= fecha_desde,
+        Venta.fecha < fecha_hasta,
         Venta.estado == 'completada'
     ).all()
 
-    total      = sum(v.total for v in ventas)
-    total_costo = sum(iv.cantidad * (iv.producto.costo if iv.producto else 0)
-                      for v in ventas for iv in v.items)
-    ganancia   = total - total_costo
-    margen     = (ganancia / total * 100) if total > 0 else 0
-    ticket_avg = total / max(1, len(ventas))
-
+    # Cálculos básicos
+    total = sum(v.total for v in ventas)
+    total_unidades = sum(item.cantidad for v in ventas for item in v.items)
+    
+    # Calcular ganancia (precio_venta - costo)
+    ganancia = 0
+    for v in ventas:
+        for item in v.items:
+            if item.producto:
+                ganancia += (item.precio_unitario - item.producto.costo) * item.cantidad
+    
+    margen = (ganancia / total * 100) if total > 0 else 0
+    ticket_promedio = total / len(ventas) if ventas else 0
+    
+    # Métodos de pago
     metodos = {}
-    cats    = {}
-    prod_v  = {}
-    dias    = {}
-
+    for v in ventas:
+        metodo = v.metodo_pago or 'efectivo'
+        metodos[metodo] = metodos.get(metodo, 0) + v.total
+    
+    # Ventas por categoría
+    categorias_venta = {}
+    for v in ventas:
+        for item in v.items:
+            if item.producto and item.producto.categoria:
+                cat_nombre = item.producto.categoria.nombre
+                categorias_venta[cat_nombre] = categorias_venta.get(cat_nombre, 0) + item.subtotal
+            else:
+                categorias_venta['Sin categoría'] = categorias_venta.get('Sin categoría', 0) + item.subtotal
+    
+    # Top productos
+    prod_v = {}
+    for v in ventas:
+        for item in v.items:
+            nombre = item.nombre_producto or (item.producto.nombre if item.producto else 'Producto')
+            emoji = item.producto.categoria.emoji if item.producto and item.producto.categoria else '📦'
+            
+            if nombre not in prod_v:
+                prod_v[nombre] = {'qty': 0, 'total': 0, 'emoji': emoji}
+            prod_v[nombre]['qty'] += item.cantidad
+            prod_v[nombre]['total'] += item.subtotal
+    
+    top_productos = sorted(prod_v.items(), key=lambda x: x[1]['total'], reverse=True)[:10]
+    
+    # Datos para gráfico de días
+    dias = {}
     delta = min((fecha_hasta - fecha_desde).days, 90)
     for i in range(delta):
         d = (fecha_desde + timedelta(days=i)).strftime('%Y-%m-%d')
         dias[d] = 0
-
+    
     for v in ventas:
-        metodos[v.metodo_pago] = metodos.get(v.metodo_pago, 0) + v.total
         d = v.fecha.strftime('%Y-%m-%d')
         if d in dias:
             dias[d] += v.total
-        for iv in v.items:
-            cat = iv.producto.categoria.nombre if iv.producto and iv.producto.categoria else 'Sin categoría'
-            cats[cat] = cats.get(cat, 0) + iv.subtotal
-            k = iv.nombre_producto
-            if k not in prod_v:
-                prod_v[k] = {'qty': 0, 'total': 0, 'emoji': iv.producto.categoria.emoji if iv.producto and iv.producto.categoria else '📦'}
-            prod_v[k]['qty']   += iv.cantidad
-            prod_v[k]['total'] += iv.subtotal
-
-    top_productos = sorted(prod_v.items(), key=lambda x: x[1]['total'], reverse=True)[:10]
-
-    # Ventas por sede
-    sedes_v = {}
-    for v in ventas:
-        s = v.sede.nombre if v.sede else 'Sin sede'
-        sedes_v[s] = sedes_v.get(s, 0) + v.total
-
+    
     # Métricas avanzadas
     clientes_unicos = len(set(v.cliente_nombre for v in ventas if v.cliente_nombre))
-    total_unidades = sum(iv.cantidad for v in ventas for iv in v.items)
-    conversion = (len(ventas) / max(1, total_unidades)) * 100
-    ticket_promedio = total / max(1, len(ventas))
-    roas = (total / max(1, total_costo)) if total_costo > 0 else 0
+    conversion = (len(ventas) / total_unidades * 100) if total_unidades > 0 else 0
+    roas = (total / max(1, sum((item.cantidad * item.producto.costo) for v in ventas for item in v.items if item.producto)))
     margen_neto = margen
-    ciclo_venta = 0  # Placeholder
-    
-    # Variación vs período anterior
-    var_vs_anterior = 0
-    proyeccion_venta = total * 1.15
+    ciclo_venta = 0  # Placeholder para cálculo futuro
+    var_vs_anterior = 0  # Placeholder
+    proyeccion_venta = total * 1.15  # Proyección simple
     
     # Productos de bajo rendimiento
     low_performers = []
-    for prod in Producto.query.filter_by(activo=True).all():
-        ventas_prod = sum(iv.cantidad for v in ventas for iv in v.items if iv.producto_id == prod.id)
+    for prod in Producto.query.filter_by(activo=True).limit(10).all():
+        ventas_prod = sum(item.cantidad for v in ventas for item in v.items if item.producto_id == prod.id)
         if ventas_prod == 0 and prod.stock > 0:
             low_performers.append({'nombre': prod.nombre, 'ventas': 0})
         elif ventas_prod < 5 and prod.stock > 10:
             low_performers.append({'nombre': prod.nombre, 'ventas': ventas_prod})
     low_performers = low_performers[:5]
-
+    
     return render_template('reportes.html',
-        total=total, ganancia=ganancia, margen=margen,
-        count=len(ventas), ticket_avg=ticket_avg,
-        metodos=metodos, categorias_venta=cats,
-        top_productos=top_productos,
-        dias_labels=list(dias.keys()), dias_values=list(dias.values()),
-        sedes_venta=sedes_v,
-        periodo=periodo, meses=meses,
-        fecha_desde=desde_str, fecha_hasta=hasta_str,
+        total=total,
+        count=len(ventas),
+        ganancia=ganancia,
+        margen=margen,
         ticket_promedio=ticket_promedio,
+        metodos=metodos,
+        categorias_venta=categorias_venta,
+        top_productos=top_productos,
+        dias_labels=list(dias.keys()),
+        dias_values=list(dias.values()),
+        periodo=periodo,
+        meses=meses,
+        fecha_desde=desde_str,
+        fecha_hasta=hasta_str,
         clientes_unicos=clientes_unicos,
         total_unidades=total_unidades,
         conversion=conversion,
@@ -138,24 +157,28 @@ def exportar_excel():
         fecha_desde, fecha_hasta = _period_dates(periodo, meses)
     
     ventas = Venta.query.filter(
-        Venta.fecha >= fecha_desde, Venta.fecha < fecha_hasta,
+        Venta.fecha >= fecha_desde,
+        Venta.fecha < fecha_hasta,
         Venta.estado == 'completada'
     ).all()
     
     total = sum(v.total for v in ventas)
-    total_costo = sum(iv.cantidad * (iv.producto.costo if iv.producto else 0)
-                      for v in ventas for iv in v.items)
-    ganancia = total - total_costo
-    margen = (ganancia / total * 100) if total > 0 else 0
+    ganancia = 0
+    for v in ventas:
+        for item in v.items:
+            if item.producto:
+                ganancia += (item.precio_unitario - item.producto.costo) * item.cantidad
     
     output = io.BytesIO()
     wb = Workbook()
     
+    # Estilos
     header_fill = PatternFill(start_color="D4A017", end_color="D4A017", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
     border = Border(left=Side(style='thin'), right=Side(style='thin'), 
                     top=Side(style='thin'), bottom=Side(style='thin'))
     
+    # Hoja 1: Resumen
     ws_resumen = wb.active
     ws_resumen.title = "Resumen General"
     
@@ -166,7 +189,7 @@ def exportar_excel():
         ['N° Transacciones', len(ventas)],
         ['Ticket Promedio', f'${(total/len(ventas)):,.0f}' if ventas else '$0'],
         ['Ganancia Bruta', f'${ganancia:,.0f}'],
-        ['Margen Bruto', f'{margen:.1f}%']
+        ['Margen Bruto', f'{(ganancia/total*100):.1f}%' if total > 0 else '0%']
     ]
     
     for row, data_row in enumerate(resumen_data, 1):
@@ -180,6 +203,7 @@ def exportar_excel():
     ws_resumen.column_dimensions['A'].width = 25
     ws_resumen.column_dimensions['B'].width = 30
     
+    # Hoja 2: Ventas Detalladas
     ws_ventas = wb.create_sheet("Ventas Detalladas")
     headers = ['Factura', 'Fecha', 'Cliente', 'Método Pago', 'Sede', 'Total', 'Items']
     for col, header in enumerate(headers, 1):
@@ -190,26 +214,27 @@ def exportar_excel():
     
     row = 2
     for venta in ventas:
-        items_count = sum(iv.cantidad for iv in venta.items)
+        items_count = sum(item.cantidad for item in venta.items)
         ws_ventas.cell(row=row, column=1, value=venta.numero_factura)
         ws_ventas.cell(row=row, column=2, value=venta.fecha.strftime('%Y-%m-%d %H:%M'))
-        ws_ventas.cell(row=row, column=3, value=venta.cliente_nombre or 'Cliente general')
-        ws_ventas.cell(row=row, column=4, value=venta.metodo_pago)
+        ws_ventas.cell(row=row, column=3, value=venta.cliente_nombre or 'Consumidor Final')
+        ws_ventas.cell(row=row, column=4, value=venta.metodo_pago or 'efectivo')
         ws_ventas.cell(row=row, column=5, value=venta.sede.nombre if venta.sede else 'Sin sede')
         ws_ventas.cell(row=row, column=6, value=f'${venta.total:,.0f}')
         ws_ventas.cell(row=row, column=7, value=items_count)
         row += 1
     
+    for col in range(1, 8):
+        ws_ventas.column_dimensions[chr(64+col)].width = 20
+    
     wb.save(output)
     output.seek(0)
-    
-    nombre_archivo = f'reporte_ventas_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
     
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=nombre_archivo
+        download_name=f'reporte_ventas_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
     )
 
 @reportes_bp.route('/activos')
@@ -220,7 +245,7 @@ def activos():
     valor_venta = sum(p.precio_venta * p.stock for p in productos)
 
     sedes_r = {}
-    resp_r  = {}
+    resp_r = {}
     for p in productos:
         s = p.sede.nombre if p.sede else 'Sin sede'
         r = p.responsable.nombre if p.responsable else 'Sin asignar'
@@ -232,5 +257,8 @@ def activos():
         resp_r[r]['count'] += 1
 
     return render_template('activos.html',
-        productos=productos, valor_costo=valor_costo, valor_venta=valor_venta,
-        sedes_resumen=sedes_r, resp_resumen=resp_r)
+        productos=productos,
+        valor_costo=valor_costo,
+        valor_venta=valor_venta,
+        sedes_resumen=sedes_r,
+        resp_resumen=resp_r)
