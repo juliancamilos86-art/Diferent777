@@ -14,32 +14,32 @@
 <div class="grid-stats">
   <div class="stat-card gold">
     <div class="stat-label">Ventas Hoy</div>
-    <div class="stat-value gold">${{ "{:,.0f}".format(total_hoy).replace(',', '.') }}</div>
-    <div class="stat-change up">↑ {{ count_hoy }} transacciones</div>
+    <div class="stat-value gold">${{ "{:,.0f}".format(total_hoy).replace(',', '.') if total_hoy else '0' }}</div>
+    <div class="stat-change up">↑ {{ count_hoy if count_hoy else 0 }} transacciones</div>
   </div>
   <div class="stat-card cyan">
     <div class="stat-label">Ventas Semana</div>
-    <div class="stat-value cyan">${{ "{:,.0f}".format(total_semana).replace(',', '.') }}</div>
+    <div class="stat-value cyan">${{ "{:,.0f}".format(total_semana).replace(',', '.') if total_semana else '0' }}</div>
     <div class="stat-sub">Últimos 7 días</div>
   </div>
   <div class="stat-card purple">
     <div class="stat-label">Ventas Mes</div>
-    <div class="stat-value purple">${{ "{:,.0f}".format(total_mes).replace(',', '.') }}</div>
+    <div class="stat-value purple">${{ "{:,.0f}".format(total_mes).replace(',', '.') if total_mes else '0' }}</div>
     <div class="stat-sub">Últimos 30 días</div>
   </div>
   <div class="stat-card green">
     <div class="stat-label">Total Activos</div>
-    <div class="stat-value green">{{ total_productos }}</div>
+    <div class="stat-value green">{{ total_productos if total_productos else 0 }}</div>
     <div class="stat-sub">productos en inventario</div>
   </div>
   <div class="stat-card orange">
     <div class="stat-label">Stock Bajo</div>
-    <div class="stat-value orange">{{ stock_bajo }}</div>
+    <div class="stat-value orange">{{ stock_bajo if stock_bajo else 0 }}</div>
     <div class="stat-sub">requieren reposición</div>
   </div>
   <div class="stat-card red">
     <div class="stat-label">Sin Stock</div>
-    <div class="stat-value red">{{ sin_stock }}</div>
+    <div class="stat-value red">{{ sin_stock if sin_stock else 0 }}</div>
     <div class="stat-sub">productos agotados</div>
   </div>
 </div>
@@ -50,37 +50,41 @@
       <span class="card-title">⚡ Ventas Recientes</span>
       <a href="{{ url_for('ventas.historial') }}" class="btn btn-outline btn-sm">Ver todas</a>
     </div>
-    {% if ventas_recientes %}
-      {% for v in ventas_recientes %}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
-        <div>
-          <div style="font-weight:600;font-size:13px;">{{ v.numero_factura }} — {{ v.cliente_nombre }}</div>
-          <div style="font-size:11px;color:var(--muted);">{{ v.fecha.strftime('%d/%m/%Y %H:%M') }} · {{ v.metodo_pago }}</div>
+    <div style="max-height:400px;overflow-y:auto;">
+      {% if ventas_recientes and ventas_recientes|length > 0 %}
+        {% for v in ventas_recientes %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-weight:600;font-size:13px;">{{ v.numero_factura }} — {{ v.cliente_nombre or 'Cliente' }}</div>
+            <div style="font-size:11px;color:var(--muted);">{{ v.fecha.strftime('%d/%m/%Y %H:%M') if v.fecha else 'Fecha no disponible' }} · {{ v.metodo_pago or 'Efectivo' }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-family:'Orbitron',monospace;font-weight:700;color:var(--gold2);font-size:13px;">${{ "{:,.0f}".format(v.total).replace(',','.') if v.total else '0' }}</span>
+            <a href="{{ url_for('ventas.ver_factura', vid=v.id) }}" target="_blank" class="btn btn-cyan btn-sm">🧾</a>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-family:'Orbitron',monospace;font-weight:700;color:var(--gold2);font-size:13px;">${{ "{:,.0f}".format(v.total).replace(',','.') }}</span>
-          <a href="{{ url_for('ventas.ver_factura', vid=v.id) }}" target="_blank" class="btn btn-cyan btn-sm">🧾</a>
-        </div>
-      </div>
-      {% endfor %}
-    {% else %}
-      <div style="text-align:center;padding:30px;color:var(--muted);">Sin ventas aún — inicia desde el Punto de Venta</div>
-    {% endif %}
+        {% endfor %}
+      {% else %}
+        <div style="text-align:center;padding:30px;color:var(--muted);">Sin ventas aún — inicia desde el Punto de Venta</div>
+      {% endif %}
+    </div>
   </div>
 
   <div class="card">
     <div class="card-header">
       <span class="card-title">📈 Ventas Últimos 7 Días</span>
     </div>
-    <canvas id="weekChart" height="180"></canvas>
+    <div style="position:relative;height:220px;min-height:220px;">
+      <canvas id="weekChart" height="220" style="max-height:220px;width:100%;"></canvas>
+    </div>
     <div style="display:flex;justify-content:space-around;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
       <div style="text-align:center;">
         <div style="font-size:11px;color:var(--muted);">Total semana</div>
-        <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--gold2);">${{ "{:,.0f}".format(total_semana).replace(',','.') }}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--gold2);">${{ "{:,.0f}".format(total_semana).replace(',','.') if total_semana else '0' }}</div>
       </div>
       <div style="text-align:center;">
         <div style="font-size:11px;color:var(--muted);">Promedio diario</div>
-        <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--cyan);">${{ "{:,.0f}".format(total_semana/7).replace(',','.') }}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--cyan);">${{ "{:,.0f}".format(total_semana/7).replace(',','.') if total_semana else '0' }}</div>
       </div>
     </div>
   </div>
@@ -91,16 +95,16 @@
     <span class="card-title">🏆 Top Productos (Semana)</span>
     <a href="{{ url_for('reportes.reportes') }}" class="btn btn-outline btn-sm">Ver reportes completos</a>
   </div>
-  {% if top_items %}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:8px;">
-      {% for nombre, qty, monto in top_items %}
+  {% if top_items and top_items|length > 0 %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:8px;max-height:300px;overflow-y:auto;">
+      {% for item in top_items %}
       <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid var(--border);">
         <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:900;color:var(--border);min-width:24px;">{{ loop.index }}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ nombre }}</div>
-          <div style="font-size:11px;color:var(--muted);">{{ qty }} unidades</div>
+          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item[0] if item[0] else 'Producto' }}</div>
+          <div style="font-size:11px;color:var(--muted);">{{ item[1] if item[1] else 0 }} unidades</div>
         </div>
-        <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--gold2);white-space:nowrap;">${{ "{:,.0f}".format(monto).replace(',','.') }}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--gold2);white-space:nowrap;">${{ "{:,.0f}".format(item[2]).replace(',','.') if item[2] else '0' }}</div>
       </div>
       {% endfor %}
     </div>
@@ -111,22 +115,244 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-  document.getElementById('dashDate').textContent = new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const ctx = document.getElementById('weekChart').getContext('2d');
-  new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels:{{ chart_labels|tojson }},
-      datasets:[{label:'Ventas',data:{{ chart_values|tojson }},backgroundColor:'rgba(212,160,23,0.35)',borderColor:'#f5c842',borderWidth:2,borderRadius:6}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+Math.round(c.raw).toLocaleString('es-CO')}}},
-      scales:{
-        x:{grid:{color:'rgba(30,30,53,0.8)'},ticks:{color:'#6b6b8a',font:{family:'Rajdhani'}}},
-        y:{grid:{color:'rgba(30,30,53,0.8)'},ticks:{color:'#6b6b8a',font:{family:'Rajdhani'},callback:v=>'$'+Math.round(v/1000)+'k'}}
-      }
+// Variable global para el gráfico
+let weekChartInstance = null;
+
+// Función para formatear números
+function formatNumber(num) {
+    if (!num && num !== 0) return '0';
+    return new Intl.NumberFormat('es-CO').format(Math.round(num));
+}
+
+// Configurar fecha
+const dashDateElement = document.getElementById('dashDate');
+if (dashDateElement) {
+    const now = new Date();
+    dashDateElement.textContent = now.toLocaleDateString('es-CO', {
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+    });
+}
+
+// Función para crear el gráfico de forma segura
+function createWeekChart() {
+    const canvas = document.getElementById('weekChart');
+    if (!canvas) {
+        console.error('Canvas weekChart no encontrado');
+        return;
     }
-  });
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error('No se pudo obtener contexto 2D');
+        return;
+    }
+    
+    // Obtener datos del template
+    let chartLabels = {{ chart_labels|tojson|safe if chart_labels else '[]' }};
+    let chartValues = {{ chart_values|tojson|safe if chart_values else '[]' }};
+    
+    // Validar datos
+    if (!chartLabels || !Array.isArray(chartLabels) || chartLabels.length === 0) {
+        console.log('No hay etiquetas para el gráfico');
+        chartLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    }
+    
+    if (!chartValues || !Array.isArray(chartValues) || chartValues.length === 0) {
+        console.log('No hay valores para el gráfico');
+        chartValues = [0, 0, 0, 0, 0, 0, 0];
+    }
+    
+    // Destruir gráfico anterior si existe
+    if (weekChartInstance) {
+        try {
+            weekChartInstance.destroy();
+        } catch(e) {
+            console.warn('Error destruyendo gráfico anterior:', e);
+        }
+        weekChartInstance = null;
+    }
+    
+    // Crear nuevo gráfico
+    try {
+        weekChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Ventas (COP)',
+                    data: chartValues,
+                    backgroundColor: 'rgba(212,160,23,0.35)',
+                    borderColor: '#f5c842',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    hoverBackgroundColor: 'rgba(212,160,23,0.5)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let value = context.raw;
+                                return 'Ventas: $' + formatNumber(value);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(30,30,53,0.3)',
+                            drawBorder: true
+                        },
+                        ticks: {
+                            color: '#6b6b8a',
+                            font: {
+                                family: 'Rajdhani',
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(30,30,53,0.3)'
+                        },
+                        ticks: {
+                            color: '#6b6b8a',
+                            font: {
+                                family: 'Rajdhani',
+                                size: 11
+                            },
+                            callback: function(value) {
+                                if (value >= 1000) {
+                                    return '$' + formatNumber(value / 1000) + 'k';
+                                }
+                                return '$' + formatNumber(value);
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                animation: {
+                    duration: 500,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+        console.log('Gráfico del dashboard creado exitosamente');
+    } catch(e) {
+        console.error('Error creando gráfico del dashboard:', e);
+        // Mostrar mensaje de error en el canvas
+        canvas.style.display = 'none';
+        const parent = canvas.parentNode;
+        if (parent) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.textAlign = 'center';
+            errorDiv.style.padding = '20px';
+            errorDiv.style.color = 'var(--muted)';
+            errorDiv.innerHTML = '📊 No hay datos suficientes para mostrar el gráfico';
+            parent.appendChild(errorDiv);
+        }
+    }
+}
+
+// Función para redimensionar el gráfico de forma segura
+function resizeChart() {
+    if (weekChartInstance && typeof weekChartInstance.resize === 'function') {
+        try {
+            weekChartInstance.resize();
+        } catch(e) {
+            console.warn('Error redimensionando gráfico:', e);
+        }
+    }
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Pequeño delay para asegurar que el canvas está completamente renderizado
+    setTimeout(function() {
+        createWeekChart();
+    }, 200);
+    
+    // Manejar redimensionamiento con debounce
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            resizeChart();
+        }, 250);
+    });
+});
+
+// Manejar errores globales de Chart.js
+window.addEventListener('error', function(e) {
+    if (e.message && (e.message.includes('Chart') || e.message.includes('canvas'))) {
+        console.error('Error relacionado con Chart.js:', e);
+    }
+});
+
+// Recargar gráfico si la página se vuelve visible (después de pestaña inactiva)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && weekChartInstance) {
+        setTimeout(function() {
+            resizeChart();
+        }, 100);
+    }
+});
 </script>
+
+<style>
+/* Estilos adicionales para mejorar el dashboard */
+.grid-stats {
+    margin-bottom: 20px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.stat-card {
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Scrollbar personalizada para las listas */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gold);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gold2);
+}
+</style>
 {% endblock %}
