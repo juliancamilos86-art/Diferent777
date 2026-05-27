@@ -1,8 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, send_file
 from flask_login import login_required, current_user
 from models import db, Venta, ItemVenta, Producto, Sede, Configuracion
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 ventas_bp = Blueprint('ventas', __name__)
 
@@ -247,6 +250,103 @@ def historial():
         metodo_seleccionado=metodo,
         sede_seleccionada=sede_id)
 
+# ── EXPORTAR A EXCEL ─────────────────────────────────────────────────────
+
+@ventas_bp.route('/ventas/exportar/excel')
+@login_required
+def exportar_ventas_excel():
+    """Exportar historial de ventas a Excel"""
+    # Obtener los mismos parámetros del filtro
+    desde = request.args.get('desde', '')
+    hasta = request.args.get('hasta', '')
+    metodo = request.args.get('metodo', '')
+    sede_id = request.args.get('sede', '')
+    
+    # Aplicar mismos filtros que en historial
+    q = Venta.query
+    if desde:
+        q = q.filter(Venta.fecha >= datetime.strptime(desde, '%Y-%m-%d'))
+    if hasta:
+        q = q.filter(Venta.fecha < datetime.strptime(hasta, '%Y-%m-%d') + timedelta(days=1))
+    if metodo:
+        q = q.filter_by(metodo_pago=metodo)
+    if sede_id:
+        q = q.filter_by(sede_id=int(sede_id))
+    
+    ventas = q.order_by(Venta.fecha.desc()).all()
+    
+    # Crear libro de Excel
+    wb = Workbook()
+    
+    # Estilos
+    header_fill = PatternFill(start_color="D4A017", end_color="D4A017", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    border = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                    top=Side(style='thin'), bottom=Side(style='thin'))
+    
+    # Hoja de ventas
+    ws = wb.active
+    ws.title = "Historial de Ventas"
+    
+    # Encabezados
+    headers = ['Factura', 'Fecha', 'Hora', 'Cliente', 'Documento', 'Método Pago', 
+               'Subtotal', 'Descuento %', 'Descuento $', 'Total', 'Estado', 'Vendedor', 'Sede']
+    
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = border
+    
+    # Agregar datos
+    for row, venta in enumerate(ventas, 2):
+        ws.cell(row=row, column=1, value=venta.numero_factura)
+        ws.cell(row=row, column=2, value=venta.fecha.strftime('%d/%m/%Y'))
+        ws.cell(row=row, column=3, value=venta.fecha.strftime('%H:%M:%S'))
+        ws.cell(row=row, column=4, value=venta.cliente_nombre or 'Consumidor Final')
+        ws.cell(row=row, column=5, value=venta.cliente_doc or '')
+        ws.cell(row=row, column=6, value=venta.metodo_pago or 'efectivo')
+        ws.cell(row=row, column=7, value=venta.subtotal)
+        ws.cell(row=row, column=8, value=venta.descuento_pct)
+        ws.cell(row=row, column=9, value=venta.descuento_monto)
+        ws.cell(row=row, column=10, value=venta.total)
+        ws.cell(row=row, column=11, value=venta.estado)
+        ws.cell(row=row, column=12, value=venta.usuario.nombre if venta.usuario else '')
+        ws.cell(row=row, column=13, value=venta.sede.nombre if venta.sede else '')
+        
+        # Formato de moneda para columnas numéricas
+        for col in [7, 9, 10]:
+            cell = ws.cell(row=row, column=col)
+            cell.number_format = '#,##0'
+    
+    # Ajustar anchos de columna
+    for col in ws.columns:
+        max_length = 0
+        column_letter = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 30)
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Guardar archivo
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    nombre_archivo = f'ventas_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nombre_archivo
+    )
+
 # ── FACTURA ───────────────────────────────────────────────────────────────
 
 @ventas_bp.route('/ventas/<int:vid>/factura')
@@ -328,6 +428,33 @@ def _prod_json(p):
         'categoria': p.categoria.nombre if p.categoria else '',
         'costo': p.costo
     }
+
+# ── API PARA PRODUCTOS (POS) ───────────────────────────────────────────────
+
+@ventas_bp.route('/api/productos')
+@login_required
+def api_productos():
+    """API para obtener productos del POS"""
+    sede_id = request.args.get('sede_id', type=int)
+    query = Producto.query.filter_by(activo=True)
+    
+    if sede_id:
+        query = query.filter_by(sede_id=sede_id)
+    
+    productos = query.order_by(Producto.nombre).all()
+    
+    return jsonify([{
+        'id': p.id,
+        'nombre': p.nombre,
+        'codigo_barras': p.codigo_barras,
+        'precio_venta': p.precio_venta,
+        'stock': p.stock,
+        'stock_minimo': p.stock_minimo,
+        'talla': p.talla or '',
+        'categoria': p.categoria.nombre if p.categoria else 'Sin categoría',
+        'emoji': p.categoria.emoji if p.categoria else '📦',
+        'activo': p.activo
+    } for p in productos])
 
 # ── ESTADÍSTICAS PARA DASHBOARD ────────────────────────────────────────────
 
