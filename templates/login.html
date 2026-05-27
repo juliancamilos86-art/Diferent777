@@ -3,43 +3,364 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — DIFERENT 777</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <title>DIFERENT 777 — Sistema de Gestión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .login-box {
-      width: 100%; max-width: 400px; padding: 20px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
+
+    :root {
+      --bg-dark: #0a0a0f;
+      --bg-darker: #050508;
+      --card-bg: rgba(18, 18, 28, 0.95);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8e8f0;
+      --muted: #8a8aa3;
+      --gold: #d4a017;
+      --gold2: #f5c842;
+      --cyan: #00e5ff;
+      --green: #00e676;
+      --red: #ff4081;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Canvas de fondo animado */
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    /* Partículas flotantes */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .particle {
+      position: absolute;
+      background: radial-gradient(circle, rgba(212,160,23,0.3), transparent);
+      border-radius: 50%;
+      animation: float 15s infinite ease-in-out;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+      10% { opacity: 0.5; }
+      90% { opacity: 0.5; }
+      100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+    }
+
+    /* Login Container */
+    .login-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 450px;
+      padding: 20px;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .login-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-      padding: 40px 36px; position: relative; overflow: hidden;
+      background: rgba(18, 18, 28, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(212, 160, 23, 0.2);
+      border-radius: 32px;
+      padding: 48px 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      transition: var(--transition);
     }
+
+    .login-card:hover {
+      border-color: rgba(212, 160, 23, 0.4);
+      box-shadow: 0 30px 60px -12px rgba(212, 160, 23, 0.2);
+    }
+
+    /* Borde animado */
     .login-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--gold), var(--cyan));
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--cyan), var(--gold), transparent);
+      animation: borderGlow 3s linear infinite;
     }
-    .login-logo { text-align: center; margin-bottom: 32px; }
-    .login-logo svg { width: 64px; height: 64px; margin-bottom: 12px; }
-    .login-brand { font-family: 'Orbitron', monospace; font-size: 24px; font-weight: 900; color: var(--gold); letter-spacing: 3px; }
-    .login-sub { font-size: 12px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
-    .login-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 24px; text-align: center; }
-    .login-hint { margin-top: 20px; padding: 12px; background: rgba(212,160,23,0.06); border: 1px solid rgba(212,160,23,0.2); border-radius: 8px; font-size: 12px; color: var(--muted); text-align: center; }
+
+    @keyframes borderGlow {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Logo */
+    .logo-section {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, rgba(212,160,23,0.1), rgba(0,229,255,0.1));
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .logo-icon svg {
+      width: 48px;
+      height: 48px;
+    }
+
+    .logo-text {
+      font-family: 'Orbitron', monospace;
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: 2px;
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* Formulario */
+    .login-title {
+      font-size: 24px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 32px;
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      opacity: 0.5;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 14px 16px 14px 48px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: var(--text);
+      font-size: 14px;
+      transition: var(--transition);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--gold);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.1);
+    }
+
+    /* Botón */
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      border: none;
+      border-radius: 16px;
+      color: #000;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(212, 160, 23, 0.3);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    /* Mensajes de alerta */
+    .alert {
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-size: 13px;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .alert-success {
+      background: rgba(0, 230, 118, 0.1);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      color: var(--green);
+    }
+
+    .alert-error {
+      background: rgba(255, 64, 129, 0.1);
+      border: 1px solid rgba(255, 64, 129, 0.3);
+      color: var(--red);
+    }
+
+    /* Loading spinner */
+    .loading {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(212, 160, 23, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--gold);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Footer */
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 32px 24px;
+      }
+      .logo-text {
+        font-size: 22px;
+      }
+    }
   </style>
 </head>
 <body>
-<canvas class="fractal-canvas" id="fractalCanvas"></canvas>
 
-<div class="login-box">
+<!-- Canvas de fondo -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- Partículas -->
+<div class="particles" id="particles"></div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading">
+  <div class="spinner"></div>
+  <p style="margin-top: 16px; color: var(--gold);">Verificando credenciales...</p>
+</div>
+
+<div class="login-container">
   <div class="login-card">
-    <div class="login-logo">
-      <svg viewBox="0 0 64 64">
-        <polygon points="32,4 60,52 4,52" fill="none" stroke="#d4a017" stroke-width="2.5"/>
-        <polygon points="32,16 52,48 12,48" fill="rgba(212,160,23,0.08)" stroke="#f5c842" stroke-width="1.5"/>
-        <polygon points="32,28 44,48 20,48" fill="rgba(212,160,23,0.15)" stroke="#d4a017" stroke-width="1"/>
-        <circle cx="32" cy="32" r="4" fill="#d4a017"/>
-      </svg>
-      <div class="login-brand">DIFERENT 777</div>
-      <div class="login-sub">Sistema de Gestión</div>
+    <div class="logo-section">
+      <div class="logo-icon">
+        <svg viewBox="0 0 64 64" fill="none">
+          <polygon points="32,4 60,52 4,52" stroke="#d4a017" stroke-width="2.5" fill="none"/>
+          <polygon points="32,16 52,48 12,48" fill="rgba(212,160,23,0.15)" stroke="#f5c842" stroke-width="1.5"/>
+          <polygon points="32,28 44,48 20,48" fill="rgba(212,160,23,0.25)" stroke="#d4a017" stroke-width="1"/>
+          <circle cx="32" cy="32" r="5" fill="#d4a017"/>
+        </svg>
+      </div>
+      <div class="logo-text">DIFERENT 777</div>
+      <div class="logo-sub">Sistema de Gestión Empresarial</div>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -48,30 +369,110 @@
       {% endfor %}
     {% endwith %}
 
-    <p class="login-title">Inicia sesión para continuar</p>
+    <p class="login-title">Bienvenido</p>
 
-    <form method="POST" action="{{ url_for('auth.login') }}">
+    <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm">
       <div class="form-group">
         <label class="form-label">Correo Electrónico</label>
-        <input type="email" name="email" class="form-control" placeholder="admin@diferent777.com" required autofocus>
+        <div class="input-wrapper">
+          <span class="input-icon">📧</span>
+          <input type="email" name="email" class="form-control" placeholder="usuario@ejemplo.com" required autofocus>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Contraseña</label>
-        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+        <div class="input-wrapper">
+          <span class="input-icon">🔒</span>
+          <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+        </div>
       </div>
-      <button type="submit" class="btn btn-gold btn-full btn-lg" style="margin-top:8px;">
-        🔑 Ingresar al Sistema
+      <button type="submit" class="btn-login">
+        🔐 Iniciar Sesión
       </button>
     </form>
 
-    <div class="login-hint">
-      <strong style="color:var(--gold);">Acceso demo:</strong><br>
-      admin@diferent777.com / admin123<br>
-      vendedor@diferent777.com / vendedor123
+    <div class="login-footer">
+      <p>Sistema seguro · Todos los derechos reservados</p>
     </div>
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+  // Canvas animado de fondo
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  
+  function drawBackground() {
+    if (!ctx) return;
+    
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#0a0a0f');
+    gradient.addColorStop(1, '#050508');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Dibujar ondas
+    const time = Date.now() / 1000;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height - 50);
+      for (let x = 0; x < canvas.width; x += 50) {
+        const y = canvas.height - 50 + Math.sin(x * 0.01 + time + i) * 30 + Math.cos(x * 0.02 - time + i) * 20;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.lineTo(0, canvas.height);
+      ctx.fillStyle = `rgba(212, 160, 23, ${0.02 - i * 0.005})`;
+      ctx.fill();
+    }
+    
+    requestAnimationFrame(drawBackground);
+  }
+  
+  // Generar partículas
+  function createParticles() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 50; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      const size = Math.random() * 4 + 2;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.left = `${Math.random() * 100}%`;
+      particle.style.bottom = `-${Math.random() * 100}px`;
+      particle.style.animationDelay = `${Math.random() * 15}s`;
+      particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+      container.appendChild(particle);
+    }
+  }
+  
+  // Loading al enviar formulario
+  document.getElementById('loginForm')?.addEventListener('submit', function(e) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+  });
+  
+  // Inicializar
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  drawBackground();
+  createParticles();
+  
+  // Agregar efecto de glitch al logo al pasar mouse
+  const logoIcon = document.querySelector('.logo-icon');
+  if (logoIcon) {
+    logoIcon.addEventListener('mouseenter', () => {
+      logoIcon.style.transform = 'scale(1.1) rotate(5deg)';
+    });
+    logoIcon.addEventListener('mouseleave', () => {
+      logoIcon.style.transform = 'scale(1) rotate(0deg)';
+    });
+  }
+</script>
 </body>
 </html>
