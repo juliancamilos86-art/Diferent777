@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Inventario{% endblock %}
+{% block page_title %}Inventario{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Gestión de Inventario</h1>
+    <p>Activos registrados en el sistema</p>
+  </div>
+  <a href="{{ url_for('productos.nuevo_producto') }}" class="btn btn-gold">+ Registrar Activo</a>
+</div>
+
+<div class="grid-stats" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-card gold"><div class="stat-label">Total SKUs</div><div class="stat-value gold">{{ total }}</div></div>
+  <div class="stat-card green"><div class="stat-label">En Stock</div><div class="stat-value green">{{ en_stock }}</div></div>
+  <div class="stat-card orange"><div class="stat-label">Stock Bajo</div><div class="stat-value orange">{{ bajo }}</div></div>
+  <div class="stat-card red"><div class="stat-label">Sin Stock</div><div class="stat-value red">{{ sin }}</div></div>
+</div>
+
+<!-- FILTERS -->
+<div class="card" style="margin-bottom:16px;padding:14px 16px;">
+  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+    <div style="flex:2;min-width:200px;">
+      <label class="form-label">Buscar</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nombre, código de barras...">
+    </div>
+    <div style="flex:1;min-width:140px;">
+      <label class="form-label">Categoría</label>
+      <select name="categoria" class="form-control">
+        <option value="">Todas</option>
+        {% for cat in categorias %}<option value="{{ cat.id }}">{{ cat.emoji }} {{ cat.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div style="flex:1;min-width:140px;">
+      <label class="form-label">Sede</label>
+      <select name="sede" class="form-control">
+        <option value="">Todas</option>
+        {% for sede in sedes %}<option value="{{ sede.id }}">{{ sede.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div style="flex:1;min-width:130px;">
+      <label class="form-label">Estado</label>
+      <select name="estado" class="form-control">
+        <option value="">Todos</option>
+        <option value="ok">✓ En Stock</option>
+        <option value="stock_bajo">⚠ Stock Bajo</option>
+        <option value="sin_stock">✕ Sin Stock</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-outline">🔍 Filtrar</button>
+    <a href="{{ url_for('productos.inventario') }}" class="btn btn-outline">✕ Limpiar</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Categoría</th>
+          <th>Talla</th>
+          <th>Costo</th>
+          <th>Precio Venta</th>
+          <th>Stock</th>
+          <th>Sede</th>
+          <th>Responsable</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in productos %}
+        <tr>
+          <td class="td-code">{{ p.codigo_barras }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:20px;">{{ p.categoria.emoji if p.categoria else '📦' }}</span>
+              <div>
+                <div style="font-weight:600;">{{ p.nombre }}</div>
+                {% if p.descripcion %}<div style="font-size:11px;color:var(--muted);">{{ p.descripcion[:50] }}{% if p.descripcion|length > 50 %}...{% endif %}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td><span class="badge badge-gold">{{ p.categoria.nombre if p.categoria else '—' }}</span></td>
+          <td>{{ p.talla or '—' }}</td>
+          <td style="color:var(--orange);font-family:'Orbitron',monospace;font-size:12px;">${{ "{:,.0f}".format(p.costo).replace(',','.') }}</td>
+          <td class="td-price">${{ "{:,.0f}".format(p.precio_venta).replace(',','.') }}</td>
+          <td>
+            <span style="font-weight:700;color:{% if p.stock == 0 %}var(--red){% elif p.stock <= p.stock_minimo %}var(--orange){% else %}var(--green){% endif %};">
+              {{ p.stock }}
+            </span>
+            <span style="font-size:10px;color:var(--muted);"> / mín {{ p.stock_minimo }}</span>
+          </td>
+          <td style="font-size:12px;">{{ p.sede.nombre if p.sede else '—' }}</td>
+          <td style="font-size:12px;">{{ p.responsable.nombre if p.responsable else '—' }}</td>
+          <td>
+            {% if p.stock == 0 %}
+              <span class="badge badge-out">SIN STOCK</span>
+            {% elif p.stock <= p.stock_minimo %}
+              <span class="badge badge-low">STOCK BAJO</span>
+            {% else %}
+              <span class="badge badge-ok">OK</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="{{ url_for('productos.editar_producto', pid=p.id) }}" class="btn btn-outline btn-sm">✏️</a>
+              <form method="POST" action="{{ url_for('productos.eliminar_producto', pid=p.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar {{ p.nombre }}?')">
+                <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">Sin productos — <a href="{{ url_for('productos.nuevo_producto') }}" style="color:var(--gold);">Registrar primero</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

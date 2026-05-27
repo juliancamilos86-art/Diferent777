@@ -1,0 +1,52 @@
+/* POS LAYOUT */
+.pos-layout { display: grid; grid-template-columns: 1fr 380px; gap: 16px; height: calc(100vh - 120px); }
+.pos-left { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.pos-controls { flex-shrink: 0; }
+
+/* PRODUCT GRID */
+.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; overflow-y: auto; padding-right: 4px; align-content: start; flex: 1; }
+.pos-product {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 12px; cursor: pointer;
+  transition: all 0.18s; text-align: center; position: relative; user-select: none;
+}
+.pos-product:hover { border-color: var(--gold); transform: translateY(-2px); background: rgba(212,160,23,0.04); }
+.pos-product.in-cart { border-color: var(--gold); background: rgba(212,160,23,0.07); }
+.pos-product .pos-product-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 8px; }
+.pos-emoji { font-size: 32px; display: block; margin-bottom: 8px; }
+.pos-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; line-height: 1.3; }
+.pos-talla { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.pos-price { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; color: var(--gold2); }
+
+/* CART PANEL */
+.cart-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+.cart-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.cart-header-title { font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 2px; }
+.cart-items { flex: 1; overflow-y: auto; min-height: 120px; }
+.cart-row { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid rgba(30,30,53,0.5); }
+.cart-row:last-child { border-bottom: none; }
+.cart-emoji { font-size: 20px; flex-shrink: 0; }
+.cart-info { flex: 1; min-width: 0; }
+.cart-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cart-code { font-size: 10px; color: var(--muted); font-family: 'Orbitron', monospace; }
+.cart-qty-ctrl { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.qty-btn { width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.qty-btn:hover { border-color: var(--gold); color: var(--gold); }
+.qty-num { font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700; min-width: 18px; text-align: center; }
+.cart-item-price { font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700; color: var(--gold2); min-width: 65px; text-align: right; flex-shrink: 0; }
+.cart-remove { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; transition: color 0.15s; }
+.cart-remove:hover { color: var(--red); }
+.cart-footer { padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.total-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+.total-row .lbl { color: var(--muted); }
+.total-row.big { font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 700; padding-top: 10px; border-top: 1px solid var(--border); color: var(--gold2); margin-top: 4px; }
+.total-row.big .lbl { color: var(--text); font-size: 14px; font-family: 'Rajdhani', sans-serif; }
+.scan-bar { display: flex; gap: 8px; align-items: center; }
+.scan-bar input { flex: 1; background: rgba(0,229,255,0.04); border-color: rgba(0,229,255,0.2); }
+.scan-bar input:focus { border-color: var(--cyan); }
+
+@media (max-width: 900px) {
+  .pos-layout { grid-template-columns: 1fr; height: auto; }
+  .cart-panel { position: static; }
+  .pos-grid { max-height: 400px; }
+}

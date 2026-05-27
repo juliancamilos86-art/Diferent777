@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Panel Admin{% endblock %}
+{% block page_title %}Panel Administrativo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Panel Administrativo</h1>
+    <p>Configuración del sistema DIFERENT 777</p>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:20px;gap:20px;">
+
+  <!-- CONFIG TIENDA -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px;">🏪 Configuración de Tienda</div>
+    <form method="POST" action="{{ url_for('admin.guardar_config') }}">
+      <div class="form-group">
+        <label class="form-label">Nombre de la Tienda</label>
+        <input type="text" name="tienda_nombre" class="form-control" value="{{ config.tienda_nombre }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">NIT / RUT</label>
+        <input type="text" name="tienda_nit" class="form-control" value="{{ config.tienda_nit }}" placeholder="900.123.456-7">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dirección</label>
+        <input type="text" name="tienda_direccion" class="form-control" value="{{ config.tienda_direccion }}" placeholder="Calle 123 # 45-67">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teléfono</label>
+        <input type="text" name="tienda_telefono" class="form-control" value="{{ config.tienda_telefono }}" placeholder="+57 300 123 4567">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="tienda_email" class="form-control" value="{{ config.tienda_email }}" placeholder="info@diferent777.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sitio Web</label>
+        <input type="text" name="tienda_web" class="form-control" value="{{ config.tienda_web }}" placeholder="www.diferent777.com">
+      </div>
+      <button type="submit" class="btn btn-gold">💾 Guardar Configuración</button>
+    </form>
+  </div>
+
+  <!-- RESUMEN -->
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:12px;">📊 Resumen del Sistema</div>
+      {% set summary = [
+        ('📦 Productos activos', productos|length if productos is defined else 0, 'gold'),
+        ('🏪 Sedes activas', sedes|selectattr('activa')|list|length, 'cyan'),
+        ('👤 Usuarios activos', usuarios|selectattr('activo')|list|length, 'green'),
+        ('🏷️ Categorías', categorias|length, 'purple'),
+        ('👷 Responsables', responsables|selectattr('activo')|list|length, 'orange'),
+      ] %}
+      {% for label, val, color in summary %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:rgba(255,255,255,0.02);border-radius:8px;">
+        <span style="font-size:14px;">{{ label }}</span>
+        <span style="font-family:'Orbitron',monospace;font-weight:700;color:var(--{{ color }});">{{ val }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- SEDES -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:12px;">🏪 Sedes</div>
+      {% for sede in sedes %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;">{{ '🟢' if sede.activa else '🔴' }} {{ sede.nombre }}</span>
+        <form method="POST" action="{{ url_for('admin.toggle_sede', sid=sede.id) }}" style="display:inline;">
+          <button type="submit" class="btn btn-outline btn-sm">{{ 'Desactivar' if sede.activa else 'Activar' }}</button>
+        </form>
+      </div>
+      {% endfor %}
+      <form method="POST" action="{{ url_for('admin.nueva_sede') }}" style="display:flex;gap:8px;margin-top:12px;">
+        <input type="text" name="nombre" class="form-control" placeholder="Nueva sede..." required>
+        <button type="submit" class="btn btn-gold btn-sm" style="white-space:nowrap;">+ Agregar</button>
+      </form>
+    </div>
+
+    <!-- RESPONSABLES -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px;">👤 Responsables</div>
+      {% for r in responsables %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;">{{ '🟢' if r.activo else '🔴' }} {{ r.nombre }}</span>
+      </div>
+      {% endfor %}
+      <form method="POST" action="{{ url_for('admin.nuevo_responsable') }}" style="display:flex;gap:8px;margin-top:12px;">
+        <input type="text" name="nombre" class="form-control" placeholder="Nuevo responsable..." required>
+        <button type="submit" class="btn btn-gold btn-sm" style="white-space:nowrap;">+ Agregar</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- USUARIOS -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">👥 Gestión de Usuarios</span>
+  </div>
+  <div class="table-wrap" style="margin-bottom:16px;">
+    <table class="table">
+      <thead>
+        <tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acción</th></tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td style="font-weight:600;">{{ u.nombre }}</td>
+          <td style="font-size:13px;">{{ u.email }}</td>
+          <td>
+            <span class="badge {{ 'badge-gold' if u.rol=='admin' else 'badge-cyan' if u.rol=='vendedor' else 'badge-muted' }}">{{ u.rol }}</span>
+          </td>
+          <td><span class="badge {{ 'badge-ok' if u.activo else 'badge-out' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
+          <td style="font-size:12px;color:var(--muted);">{{ u.creado_en.strftime('%d/%m/%Y') }}</td>
+          <td>
+            {% if u.id != current_user.id %}
+            <form method="POST" action="{{ url_for('admin.toggle_usuario', uid=u.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-outline btn-sm">{{ 'Desactivar' if u.activo else 'Activar' }}</button>
+            </form>
+            {% else %}
+            <span style="font-size:12px;color:var(--muted);">Tú</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- NEW USER FORM -->
+  <div style="padding:16px;background:rgba(212,160,23,0.04);border:1px solid rgba(212,160,23,0.15);border-radius:10px;">
+    <div class="card-title" style="margin-bottom:14px;">➕ Crear Nuevo Usuario</div>
+    <form method="POST" action="{{ url_for('admin.nuevo_usuario') }}">
+      <div class="grid-2" style="gap:12px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Nombre completo</label>
+          <input type="text" name="nombre" class="form-control" required placeholder="Nombre del usuario">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" required placeholder="email@diferent777.com">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Contraseña</label>
+          <input type="password" name="password" class="form-control" required placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Rol</label>
+          <select name="rol" class="form-control">
+            <option value="vendedor">Vendedor</option>
+            <option value="admin">Administrador</option>
+            <option value="bodega">Bodega</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-gold" style="margin-top:14px;">➕ Crear Usuario</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

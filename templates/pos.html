@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Punto de Venta{% endblock %}
+{% block page_title %}Punto de Venta{% endblock %}
+
+{% block content %}
+<div class="pos-layout">
+  <div class="pos-left">
+    <div class="pos-controls">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <div class="scan-bar" style="flex:1;min-width:220px;">
+          <input type="text" id="scanInput" class="form-control" placeholder="📷 Escanear / escribir código de barras..." autocomplete="off">
+          <button class="btn btn-cyan btn-sm" onclick="scanBarcode()">🔍</button>
+        </div>
+        <select id="sedeId" class="form-control" style="max-width:180px;">
+          {% for sede in sedes %}<option value="{{ sede.id }}">{{ sede.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-row">
+        <button class="filter-chip active" onclick="filterCategory(this,'')">Todos</button>
+        {% for cat in categorias %}<button class="filter-chip" onclick="filterCategory(this,'{{ cat.nombre }}')">{{ cat.emoji }} {{ cat.nombre }}</button>{% endfor %}
+      </div>
+      <input type="text" class="form-control" placeholder="🔍 Buscar por nombre..." oninput="searchProducts(this.value)">
+    </div>
+    <div class="pos-grid" id="posGrid">
+      <div style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">Cargando productos...</div>
+    </div>
+  </div>
+
+  <div class="cart-panel">
+    <div class="cart-header">
+      <span class="cart-header-title">🧾 CARRITO</span>
+      <span style="font-size:11px;color:var(--muted);" id="cartCount">0 items</span>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">Selecciona productos o escanea un código</div>
+    </div>
+    <div class="cart-footer">
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Cliente</label>
+        <input type="text" id="clienteNombre" class="form-control" placeholder="Nombre del cliente (opcional)">
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Documento</label>
+        <input type="text" id="clienteDoc" class="form-control" placeholder="CC / NIT (opcional)">
+      </div>
+      <div class="grid-2" style="gap:8px;margin-bottom:8px;">
+        <div>
+          <label class="form-label">Método de Pago</label>
+          <select id="metodoPago" class="form-control">
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="tarjeta">💳 Tarjeta</option>
+            <option value="nequi">📱 Nequi</option>
+            <option value="daviplata">📱 Daviplata</option>
+            <option value="transferencia">🏦 Transferencia</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Descuento %</label>
+          <input type="number" id="descuento" class="form-control" value="0" min="0" max="100">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">Notas</label>
+        <input type="text" id="notas" class="form-control" placeholder="Notas de la venta...">
+      </div>
+      <hr class="divider">
+      <div class="total-row"><span class="lbl">Subtotal</span><span id="subtotal" style="font-family:'Orbitron',monospace;">$0</span></div>
+      <div class="total-row"><span class="lbl">Descuento</span><span id="descMonto" style="color:var(--green);font-family:'Orbitron',monospace;">-$0</span></div>
+      <div class="total-row big"><span class="lbl">TOTAL</span><span id="totalDisplay">$0</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+        <button id="btnProcesar" class="btn btn-gold btn-full btn-lg" onclick="procesarVenta()">✓ PROCESAR VENTA</button>
+        <button class="btn btn-outline btn-full btn-sm" onclick="clearCart()">🗑️ Limpiar Carrito</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/pos.js') }}"></script>
+{% endblock %}

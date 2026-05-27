@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Control de Activos{% endblock %}
+{% block page_title %}Control de Activos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Control de Activos</h1>
+    <p>Inventario valorizado y asignación</p>
+  </div>
+  <a href="{{ url_for('productos.nuevo_producto') }}" class="btn btn-gold">+ Nuevo Activo</a>
+</div>
+
+<div class="grid-3" style="margin-bottom:20px;">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px;">🏪 Por Sede</div>
+    {% for sede, data in sedes_resumen.items() %}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:13px;">🏪 {{ sede }}</span>
+      <div style="text-align:right;">
+        <div style="font-family:'Orbitron',monospace;font-weight:700;color:var(--gold2);font-size:13px;">{{ data.count }} SKU</div>
+        <div style="font-size:11px;color:var(--muted);">{{ data.stock }} uds · ${{ "{:,.0f}".format(data.valor).replace(',','.') }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div style="color:var(--muted);padding:12px 0;font-size:13px;">Sin sedes configuradas</div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px;">👤 Por Responsable</div>
+    {% for resp, data in resp_resumen.items() %}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:13px;">👤 {{ resp }}</span>
+      <span style="font-family:'Orbitron',monospace;font-weight:700;color:var(--cyan);font-size:13px;">{{ data.count }} productos</span>
+    </div>
+    {% else %}
+    <div style="color:var(--muted);padding:12px 0;font-size:13px;">Sin responsables</div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px;">💎 Valor del Inventario</div>
+    <div style="text-align:center;padding:10px 0;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">A PRECIO DE COSTO</div>
+      <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:var(--orange);">${{ "{:,.0f}".format(valor_costo).replace(',','.') }}</div>
+      <hr class="divider">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">A PRECIO DE VENTA</div>
+      <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:var(--cyan);">${{ "{:,.0f}".format(valor_venta).replace(',','.') }}</div>
+      <hr class="divider">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;">MARGEN POTENCIAL</div>
+      <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:var(--green);">${{ "{:,.0f}".format(valor_venta - valor_costo).replace(',','.') }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title" style="margin-bottom:12px;">📋 Todos los Activos</div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Fecha Ingreso</th>
+          <th>Costo Unit.</th>
+          <th>Precio Venta</th>
+          <th>Stock</th>
+          <th>Valor Stock</th>
+          <th>Sede</th>
+          <th>Responsable</th>
+          <th>Margen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in productos %}
+        <tr>
+          <td class="td-code">{{ p.codigo_barras }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:18px;">{{ p.categoria.emoji if p.categoria else '📦' }}</span>
+              <div>
+                <div style="font-weight:600;font-size:13px;">{{ p.nombre }}</div>
+                <div style="font-size:11px;color:var(--muted);">{{ p.talla or '' }}{% if p.color %} · {{ p.color }}{% endif %}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:12px;color:var(--muted);">{{ p.fecha_ingreso.strftime('%d/%m/%Y') }}</td>
+          <td style="color:var(--orange);font-family:'Orbitron',monospace;font-size:12px;">${{ "{:,.0f}".format(p.costo).replace(',','.') }}</td>
+          <td class="td-price">${{ "{:,.0f}".format(p.precio_venta).replace(',','.') }}</td>
+          <td style="font-weight:700;color:{% if p.stock==0 %}var(--red){% elif p.stock<=p.stock_minimo %}var(--orange){% else %}var(--green){% endif %};">{{ p.stock }}</td>
+          <td style="font-family:'Orbitron',monospace;font-size:12px;color:var(--cyan);">${{ "{:,.0f}".format(p.precio_venta * p.stock).replace(',','.') }}</td>
+          <td style="font-size:12px;">{{ p.sede.nombre if p.sede else '—' }}</td>
+          <td style="font-size:12px;">{{ p.responsable.nombre if p.responsable else '—' }}</td>
+          <td>
+            <span style="font-weight:700;color:{% if p.margen > 40 %}var(--green){% elif p.margen > 20 %}var(--gold2){% else %}var(--red){% endif %};">
+              {{ p.margen }}%
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Sin activos registrados</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

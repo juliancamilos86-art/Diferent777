@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Panel Principal</h1>
+    <p id="dashDate" style="color:var(--muted);font-size:13px;margin-top:4px;"></p>
+  </div>
+  <a href="{{ url_for('ventas.pos') }}" class="btn btn-gold">🛒 Ir al POS</a>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-card gold">
+    <div class="stat-label">Ventas Hoy</div>
+    <div class="stat-value gold">${{ "{:,.0f}".format(total_hoy).replace(',', '.') }}</div>
+    <div class="stat-change up">↑ {{ count_hoy }} transacciones</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-label">Ventas Semana</div>
+    <div class="stat-value cyan">${{ "{:,.0f}".format(total_semana).replace(',', '.') }}</div>
+    <div class="stat-sub">Últimos 7 días</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-label">Ventas Mes</div>
+    <div class="stat-value purple">${{ "{:,.0f}".format(total_mes).replace(',', '.') }}</div>
+    <div class="stat-sub">Últimos 30 días</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">Total Activos</div>
+    <div class="stat-value green">{{ total_productos }}</div>
+    <div class="stat-sub">productos en inventario</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-label">Stock Bajo</div>
+    <div class="stat-value orange">{{ stock_bajo }}</div>
+    <div class="stat-sub">requieren reposición</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-label">Sin Stock</div>
+    <div class="stat-value red">{{ sin_stock }}</div>
+    <div class="stat-sub">productos agotados</div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:20px;gap:20px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⚡ Ventas Recientes</span>
+      <a href="{{ url_for('ventas.historial') }}" class="btn btn-outline btn-sm">Ver todas</a>
+    </div>
+    {% if ventas_recientes %}
+      {% for v in ventas_recientes %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-weight:600;font-size:13px;">{{ v.numero_factura }} — {{ v.cliente_nombre }}</div>
+          <div style="font-size:11px;color:var(--muted);">{{ v.fecha.strftime('%d/%m/%Y %H:%M') }} · {{ v.metodo_pago }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:'Orbitron',monospace;font-weight:700;color:var(--gold2);font-size:13px;">${{ "{:,.0f}".format(v.total).replace(',','.') }}</span>
+          <a href="{{ url_for('ventas.ver_factura', vid=v.id) }}" target="_blank" class="btn btn-cyan btn-sm">🧾</a>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center;padding:30px;color:var(--muted);">Sin ventas aún — inicia desde el Punto de Venta</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📈 Ventas Últimos 7 Días</span>
+    </div>
+    <canvas id="weekChart" height="180"></canvas>
+    <div style="display:flex;justify-content:space-around;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">Total semana</div>
+        <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--gold2);">${{ "{:,.0f}".format(total_semana).replace(',','.') }}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">Promedio diario</div>
+        <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--cyan);">${{ "{:,.0f}".format(total_semana/7).replace(',','.') }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">🏆 Top Productos (Semana)</span>
+    <a href="{{ url_for('reportes.reportes') }}" class="btn btn-outline btn-sm">Ver reportes completos</a>
+  </div>
+  {% if top_items %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:8px;">
+      {% for nombre, qty, monto in top_items %}
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid var(--border);">
+        <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:900;color:var(--border);min-width:24px;">{{ loop.index }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ nombre }}</div>
+          <div style="font-size:11px;color:var(--muted);">{{ qty }} unidades</div>
+        </div>
+        <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--gold2);white-space:nowrap;">${{ "{:,.0f}".format(monto).replace(',','.') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align:center;padding:20px;color:var(--muted);">Los productos más vendidos aparecerán aquí</div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  document.getElementById('dashDate').textContent = new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const ctx = document.getElementById('weekChart').getContext('2d');
+  new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:{{ chart_labels|tojson }},
+      datasets:[{label:'Ventas',data:{{ chart_values|tojson }},backgroundColor:'rgba(212,160,23,0.35)',borderColor:'#f5c842',borderWidth:2,borderRadius:6}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+Math.round(c.raw).toLocaleString('es-CO')}}},
+      scales:{
+        x:{grid:{color:'rgba(30,30,53,0.8)'},ticks:{color:'#6b6b8a',font:{family:'Rajdhani'}}},
+        y:{grid:{color:'rgba(30,30,53,0.8)'},ticks:{color:'#6b6b8a',font:{family:'Rajdhani'},callback:v=>'$'+Math.round(v/1000)+'k'}}
+      }
+    }
+  });
+</script>
+{% endblock %}

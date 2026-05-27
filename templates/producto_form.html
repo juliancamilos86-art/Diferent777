@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if producto else 'Nuevo' }} Activo{% endblock %}
+{% block page_title %}{{ 'Editar' if producto else 'Registrar' }} Activo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>{{ 'Editar Activo' if producto else 'Registrar Nuevo Activo' }}</h1>
+    <p>Complete la información del producto</p>
+  </div>
+  <a href="{{ url_for('productos.inventario') }}" class="btn btn-outline">← Volver</a>
+</div>
+
+<div style="max-width:800px;">
+  <form method="POST">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:16px;">📦 Información del Producto</div>
+      <div class="grid-2" style="gap:16px;">
+        <div class="form-group">
+          <label class="form-label">Nombre del Producto *</label>
+          <input type="text" name="nombre" class="form-control" value="{{ producto.nombre if producto else '' }}" required placeholder="Ej: Camiseta Urban Classic">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Código de Barras *</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" name="codigo_barras" id="codigoInput" class="form-control" value="{{ producto.codigo_barras if producto else '' }}" required placeholder="EAN-13, QR..." {{ 'readonly' if producto else '' }}>
+            {% if not producto %}
+            <button type="button" class="btn btn-cyan btn-sm" onclick="generateCode()" style="white-space:nowrap;">⚡ Generar</button>
+            {% endif %}
+          </div>
+          <div id="barcodePreview" style="margin-top:10px;"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <select name="categoria_id" class="form-control">
+            <option value="">Sin categoría</option>
+            {% for cat in categorias %}
+            <option value="{{ cat.id }}" {{ 'selected' if producto and producto.categoria_id == cat.id else '' }}>{{ cat.emoji }} {{ cat.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Talla / Variante</label>
+          <input type="text" name="talla" class="form-control" value="{{ producto.talla if producto else '' }}" placeholder="XS, S, M, L, XL, XXL, 32, 42...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <input type="text" name="color" class="form-control" value="{{ producto.color if producto else '' }}" placeholder="Negro, Blanco, Azul...">
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Descripción</label>
+          <textarea name="descripcion" class="form-control" placeholder="Describe el producto, materiales, características...">{{ producto.descripcion if producto else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:16px;">💰 Precios y Stock</div>
+      <div class="grid-2" style="gap:16px;">
+        <div class="form-group">
+          <label class="form-label">Precio de Compra / Costo (COP)</label>
+          <input type="number" name="costo" class="form-control" value="{{ producto.costo if producto else '0' }}" min="0" step="100" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio de Venta (COP) *</label>
+          <input type="number" name="precio_venta" id="precioVenta" class="form-control" value="{{ producto.precio_venta if producto else '0' }}" min="0" step="100" required placeholder="0" oninput="calcMargen()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock Inicial</label>
+          <input type="number" name="stock" class="form-control" value="{{ producto.stock if producto else '1' }}" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock Mínimo (alerta)</label>
+          <input type="number" name="stock_minimo" class="form-control" value="{{ producto.stock_minimo if producto else '5' }}" min="0">
+        </div>
+      </div>
+      <div id="margenInfo" style="margin-top:8px;padding:10px;background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.2);border-radius:8px;font-size:13px;display:none;">
+        <span style="color:var(--muted);">Margen estimado: </span>
+        <span id="margenVal" style="color:var(--green);font-weight:700;font-family:'Orbitron',monospace;"></span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:16px;">📍 Ubicación y Responsable</div>
+      <div class="grid-2" style="gap:16px;">
+        <div class="form-group">
+          <label class="form-label">Sede / Ubicación</label>
+          <select name="sede_id" class="form-control">
+            <option value="">Sin sede</option>
+            {% for sede in sedes %}
+            <option value="{{ sede.id }}" {{ 'selected' if producto and producto.sede_id == sede.id else '' }}>{{ sede.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsable</label>
+          <select name="responsable_id" class="form-control">
+            <option value="">Sin asignar</option>
+            {% for resp in responsables %}
+            <option value="{{ resp.id }}" {{ 'selected' if producto and producto.responsable_id == resp.id else '' }}>{{ resp.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn btn-gold btn-lg">💾 {{ 'Actualizar Activo' if producto else 'Registrar Activo' }}</button>
+      <a href="{{ url_for('productos.inventario') }}" class="btn btn-outline btn-lg">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+async function generateCode() {
+  const resp = await fetch('/api/generar-codigo');
+  const data = await resp.json();
+  document.getElementById('codigoInput').value = data.codigo;
+  renderBarcode(data.codigo);
+}
+
+function renderBarcode(code) {
+  const bars = Array.from({length:35}, () =>
+    `<div style="display:inline-block;width:${1+Math.random()*2}px;height:${28+Math.random()*14}px;background:#000;margin:0 0.3px;vertical-align:bottom;"></div>`
+  ).join('');
+  document.getElementById('barcodePreview').innerHTML = `
+    <div style="background:white;padding:8px 12px;border-radius:6px;display:inline-block;text-align:center;">
+      <div style="height:44px;display:flex;align-items:flex-end;">${bars}</div>
+      <div style="font-family:'Courier New',monospace;font-size:10px;color:#000;margin-top:4px;">${code}</div>
+    </div>`;
+}
+
+function calcMargen() {
+  const costo = parseFloat(document.querySelector('[name=costo]').value) || 0;
+  const precio = parseFloat(document.getElementById('precioVenta').value) || 0;
+  if (precio > 0 && costo > 0) {
+    const m = ((precio - costo) / precio * 100).toFixed(1);
+    document.getElementById('margenVal').textContent = m + '%';
+    document.getElementById('margenInfo').style.display = 'block';
+  }
+}
+
+{% if producto and producto.codigo_barras %}
+renderBarcode('{{ producto.codigo_barras }}');
+{% endif %}
+</script>
+{% endblock %}

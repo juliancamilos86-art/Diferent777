@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Reportes{% endblock %}
+{% block page_title %}Reportes y Análisis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Reportes y Análisis</h1>
+    <p>Métricas de ventas por período</p>
+  </div>
+</div>
+
+<!-- PERIOD FILTERS -->
+<div class="card" style="margin-bottom:16px;padding:14px 16px;">
+  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+    <div>
+      <label class="form-label">Período Rápido</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <a href="{{ url_for('reportes.reportes', periodo='hoy') }}" class="filter-chip {{ 'active' if periodo=='hoy' else '' }}">Hoy</a>
+        <a href="{{ url_for('reportes.reportes', periodo='semana') }}" class="filter-chip {{ 'active' if periodo=='semana' else '' }}">Semana</a>
+        <a href="{{ url_for('reportes.reportes', periodo='mes') }}" class="filter-chip {{ 'active' if periodo=='mes' else '' }}">Mes</a>
+        <a href="{{ url_for('reportes.reportes', periodo='trimestre') }}" class="filter-chip {{ 'active' if periodo=='trimestre' else '' }}">Trimestre</a>
+        <a href="{{ url_for('reportes.reportes', periodo='anual') }}" class="filter-chip {{ 'active' if periodo=='anual' else '' }}">Anual</a>
+      </div>
+    </div>
+    <div style="border-left:1px solid var(--border);padding-left:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div>
+        <label class="form-label">Personalizado — Meses atrás</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" name="meses" value="{{ meses }}" min="1" max="24" class="form-control" style="width:80px;" placeholder="1">
+          <button type="submit" name="periodo" value="custom" class="btn btn-outline btn-sm">Aplicar</button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Rango de Fechas</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control">
+          <span style="color:var(--muted);">→</span>
+          <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control">
+          <button type="submit" class="btn btn-outline btn-sm">Filtrar</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- STATS -->
+<div class="grid-stats" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-card gold"><div class="stat-label">Total Ventas</div><div class="stat-value gold">${{ "{:,.0f}".format(total).replace(',','.') }}</div></div>
+  <div class="stat-card cyan"><div class="stat-label">Transacciones</div><div class="stat-value cyan">{{ count }}</div></div>
+  <div class="stat-card green"><div class="stat-label">Ganancia Bruta</div><div class="stat-value green">${{ "{:,.0f}".format(ganancia).replace(',','.') }}</div></div>
+  <div class="stat-card purple"><div class="stat-label">Margen Bruto</div><div class="stat-value purple">{{ "%.1f"|format(margen) }}%</div></div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="grid-2" style="margin-bottom:16px;gap:16px;">
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px;">📈 Ventas por Día</div>
+    <canvas id="daysChart" height="200"></canvas>
+  </div>
+  <div class="grid-2" style="gap:16px;align-content:start;">
+    <!-- METODOS -->
+    <div class="card" style="grid-column:1/-1;">
+      <div class="card-title" style="margin-bottom:12px;">💳 Ventas por Método de Pago</div>
+      {% if metodos %}
+        {% set max_m = metodos.values()|max %}
+        {% for metodo, monto in metodos.items()|sort(attribute='1',reverse=True) %}
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+            <span style="text-transform:capitalize;">{{ metodo }}</span>
+            <span style="font-family:'Orbitron',monospace;font-size:11px;color:var(--gold2);">${{ "{:,.0f}".format(monto).replace(',','.') }}</span>
+          </div>
+          <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:{{ (monto/max_m*100)|round|int }}%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:4px;"></div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--muted);text-align:center;padding:20px;">Sin datos</div>
+      {% endif %}
+    </div>
+
+    <!-- CATEGORIAS -->
+    <div class="card" style="grid-column:1/-1;">
+      <div class="card-title" style="margin-bottom:12px;">👗 Ventas por Categoría</div>
+      {% if categorias_venta %}
+        {% set max_c = categorias_venta.values()|max %}
+        {% set colors = ['var(--gold2)','var(--cyan)','var(--green)','#bb86fc','var(--orange)','var(--red)'] %}
+        {% for cat, monto in categorias_venta.items()|sort(attribute='1',reverse=True) %}
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+            <span>{{ cat }}</span>
+            <span style="font-family:'Orbitron',monospace;font-size:11px;color:{{ colors[loop.index0 % 6] }};">${{ "{:,.0f}".format(monto).replace(',','.') }}</span>
+          </div>
+          <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:{{ (monto/max_c*100)|round|int }}%;background:{{ colors[loop.index0 % 6] }};border-radius:4px;opacity:0.8;"></div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--muted);text-align:center;padding:20px;">Sin datos</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- TOP PRODUCTS -->
+<div class="card">
+  <div class="card-title" style="margin-bottom:16px;">🏆 Top 10 Productos</div>
+  {% if top_productos %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>#</th><th>Producto</th><th>Unidades</th><th>Total Ventas</th></tr>
+      </thead>
+      <tbody>
+        {% for nombre, data in top_productos %}
+        <tr>
+          <td style="font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--border);">{{ loop.index }}</td>
+          <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">{{ data.emoji }}</span><span style="font-weight:600;">{{ nombre }}</span></div></td>
+          <td style="font-family:'Orbitron',monospace;font-weight:700;color:var(--cyan);">{{ data.qty }}</td>
+          <td class="td-price">${{ "{:,.0f}".format(data.total).replace(',','.') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div style="text-align:center;padding:30px;color:var(--muted);">Sin ventas en este período</div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const labels = {{ dias_labels|tojson }};
+const values = {{ dias_values|tojson }};
+const ctx = document.getElementById('daysChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [{
+      label: 'Ventas', data: values,
+      borderColor: '#f5c842', backgroundColor: 'rgba(212,160,23,0.1)',
+      borderWidth: 2, fill: true, tension: 0.4,
+      pointBackgroundColor: '#f5c842', pointRadius: 3
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + Math.round(c.raw).toLocaleString('es-CO') } } },
+    scales: {
+      x: { grid: { color: 'rgba(30,30,53,0.8)' }, ticks: { color: '#6b6b8a', maxTicksLimit: 10, font: { family: 'Rajdhani', size: 11 } } },
+      y: { grid: { color: 'rgba(30,30,53,0.8)' }, ticks: { color: '#6b6b8a', font: { family: 'Rajdhani' }, callback: v => '$' + Math.round(v/1000) + 'k' } }
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — DIFERENT 777</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-box {
+      width: 100%; max-width: 400px; padding: 20px;
+    }
+    .login-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 40px 36px; position: relative; overflow: hidden;
+    }
+    .login-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--gold), var(--cyan));
+    }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo svg { width: 64px; height: 64px; margin-bottom: 12px; }
+    .login-brand { font-family: 'Orbitron', monospace; font-size: 24px; font-weight: 900; color: var(--gold); letter-spacing: 3px; }
+    .login-sub { font-size: 12px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
+    .login-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 24px; text-align: center; }
+    .login-hint { margin-top: 20px; padding: 12px; background: rgba(212,160,23,0.06); border: 1px solid rgba(212,160,23,0.2); border-radius: 8px; font-size: 12px; color: var(--muted); text-align: center; }
+  </style>
+</head>
+<body>
+<canvas class="fractal-canvas" id="fractalCanvas"></canvas>
+
+<div class="login-box">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 64 64">
+        <polygon points="32,4 60,52 4,52" fill="none" stroke="#d4a017" stroke-width="2.5"/>
+        <polygon points="32,16 52,48 12,48" fill="rgba(212,160,23,0.08)" stroke="#f5c842" stroke-width="1.5"/>
+        <polygon points="32,28 44,48 20,48" fill="rgba(212,160,23,0.15)" stroke="#d4a017" stroke-width="1"/>
+        <circle cx="32" cy="32" r="4" fill="#d4a017"/>
+      </svg>
+      <div class="login-brand">DIFERENT 777</div>
+      <div class="login-sub">Sistema de Gestión</div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, msg in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <p class="login-title">Inicia sesión para continuar</p>
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="form-group">
+        <label class="form-label">Correo Electrónico</label>
+        <input type="email" name="email" class="form-control" placeholder="admin@diferent777.com" required autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-gold btn-full btn-lg" style="margin-top:8px;">
+        🔑 Ingresar al Sistema
+      </button>
+    </form>
+
+    <div class="login-hint">
+      <strong style="color:var(--gold);">Acceso demo:</strong><br>
+      admin@diferent777.com / admin123<br>
+      vendedor@diferent777.com / vendedor123
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

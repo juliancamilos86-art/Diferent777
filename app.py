@@ -1,0 +1,137 @@
+from flask import Flask
+from flask_login import LoginManager
+from models import db
+from datetime import datetime
+import os
+
+login_manager = LoginManager()
+
+def create_app():
+    app = Flask(__name__)
+
+    # ── Config ──────────────────────────────────────────────
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'diferent777-super-secret-2025')
+
+    db_url = os.environ.get('DATABASE_URL', '')
+    if not db_url:
+        # Fallback: hardcoded Neon (user's production DB)
+        db_url = 'postgresql://neondb_owner:npg_wCbG53PncmYo@ep-fancy-fire-a486l833-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require'
+    # Render gives postgres:// — SQLAlchemy needs postgresql://
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'connect_args': {'connect_timeout': 10} if 'postgresql' in db_url else {}
+    }
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+    # ── Extensions ──────────────────────────────────────────
+    db.init_app(app)
+
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Inicia sesión para continuar'
+    login_manager.login_message_category = 'info'
+
+    # User loader — MUST be after login_manager.init_app
+    from models import Usuario
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.get(Usuario, int(user_id))
+
+    # ── Blueprints ──────────────────────────────────────────
+    from routes.auth import auth_bp
+    from routes.dashboard import dashboard_bp
+    from routes.productos import productos_bp
+    from routes.ventas import ventas_bp
+    from routes.reportes import reportes_bp
+    from routes.admin import admin_bp
+    from routes.api import api_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(productos_bp)
+    app.register_blueprint(ventas_bp)
+    app.register_blueprint(reportes_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp)
+
+    # ── DB + seed ───────────────────────────────────────────
+    with app.app_context():
+        db.create_all()
+        _seed()
+
+    return app
+
+
+def _seed():
+    from models import Usuario, Sede, Categoria, Responsable, Producto, Configuracion
+    from werkzeug.security import generate_password_hash
+
+    if Usuario.query.count() == 0:
+        db.session.add_all([
+            Usuario(nombre='Administrador', email='admin@diferent777.com',
+                    password_hash=generate_password_hash('admin123'), rol='admin', activo=True),
+            Usuario(nombre='Vendedor 1', email='vendedor@diferent777.com',
+                    password_hash=generate_password_hash('vendedor123'), rol='vendedor', activo=True),
+        ])
+        db.session.commit()
+
+    if Sede.query.count() == 0:
+        db.session.add_all([Sede(nombre=n, activa=True)
+                            for n in ['Sede Principal', 'Sede Norte', 'Sede Sur', 'Bodega']])
+        db.session.commit()
+
+    if Categoria.query.count() == 0:
+        cats = [('Camisetas','👕','#7c4dff'),('Pantalones','👖','#00e5ff'),
+                ('Zapatos','👟','#00e676'),('Accesorios','🧢','#d4a017'),
+                ('Vestidos','👗','#ff4081'),('Chaquetas','🧥','#ff6d00'),
+                ('Deportiva','🎽','#29b6f6'),('Ropa Interior','🩲','#ab47bc')]
+        db.session.add_all([Categoria(nombre=n, emoji=e, color=c) for n,e,c in cats])
+        db.session.commit()
+
+    if Responsable.query.count() == 0:
+        db.session.add_all([Responsable(nombre=n, activo=True)
+                            for n in ['Admin D777','Vendedor 1','Vendedor 2','Encargado Bodega']])
+        db.session.commit()
+
+    if Producto.query.count() == 0:
+        s1 = Sede.query.filter_by(nombre='Sede Principal').first()
+        s2 = Sede.query.filter_by(nombre='Sede Norte').first()
+        c1 = Categoria.query.filter_by(nombre='Camisetas').first()
+        c2 = Categoria.query.filter_by(nombre='Pantalones').first()
+        c3 = Categoria.query.filter_by(nombre='Zapatos').first()
+        c4 = Categoria.query.filter_by(nombre='Accesorios').first()
+        r1 = Responsable.query.first()
+        items = [
+            ('Camiseta Urban Classic','7501234567890',c1,'M',25000,65000,12,5,s1,r1,'Camiseta 100% algodón pima'),
+            ('Pantalón Cargo Street','7509876543210',c2,'32',55000,130000,8,5,s1,r1,'Pantalón cargo urbano'),
+            ('Zapatilla Runner X9','7504561237890',c3,'42',90000,220000,5,3,s2,r1,'Zapatilla deportiva premium'),
+            ('Gorra D777 Snapback','7507890123456',c4,'Única',15000,45000,20,5,s1,r1,'Gorra snapback exclusiva'),
+            ('Chaqueta Bomber','7503216549870',Categoria.query.filter_by(nombre='Chaquetas').first(),'L',120000,280000,4,2,s2,r1,'Chaqueta bomber edición especial'),
+        ]
+        db.session.add_all([
+            Producto(nombre=nm,codigo_barras=cb,categoria_id=cat.id,talla=t,
+                     costo=co,precio_venta=pv,stock=st,stock_minimo=sm,
+                     sede_id=sd.id,responsable_id=rp.id,descripcion=ds,
+                     activo=True,fecha_ingreso=datetime.utcnow())
+            for nm,cb,cat,t,co,pv,st,sm,sd,rp,ds in items if cat
+        ])
+        db.session.commit()
+
+    # Default store config
+    for k, v in [('tienda_nombre','DIFERENT 777'),('tienda_nit',''),
+                 ('tienda_direccion',''),('tienda_telefono',''),
+                 ('tienda_email',''),('tienda_web','')]:
+        if not Configuracion.query.filter_by(clave=k).first():
+            db.session.add(Configuracion(clave=k, valor=v))
+    db.session.commit()
+
+
+if __name__ == '__main__':
+    application = create_app()
+    application.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

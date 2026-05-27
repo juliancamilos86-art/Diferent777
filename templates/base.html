@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}DIFERENT 777{% endblock %} — Sistema Pro</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pos.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<canvas class="fractal-canvas" id="fractalCanvas"></canvas>
+
+<div class="app-wrapper">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg class="logo-icon" viewBox="0 0 40 40">
+        <polygon points="20,2 38,32 2,32" fill="none" stroke="#d4a017" stroke-width="2"/>
+        <polygon points="20,10 32,30 8,30" fill="rgba(212,160,23,0.08)" stroke="#f5c842" stroke-width="1"/>
+        <polygon points="20,18 28,30 12,30" fill="rgba(212,160,23,0.15)" stroke="#d4a017" stroke-width="0.5"/>
+        <circle cx="20" cy="20" r="2.5" fill="#d4a017"/>
+      </svg>
+      <div>
+        <div class="logo-brand">DIFERENT 777</div>
+        <div class="logo-sub">Sistema Pro</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Principal</div>
+      <a href="{{ url_for('dashboard.index') }}" class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <a href="{{ url_for('ventas.pos') }}" class="nav-item {% if request.endpoint == 'ventas.pos' %}active{% endif %}">
+        <span class="nav-icon">🛒</span> Punto de Venta
+      </a>
+
+      <div class="nav-section">Inventario</div>
+      <a href="{{ url_for('productos.inventario') }}" class="nav-item {% if request.endpoint == 'productos.inventario' %}active{% endif %}">
+        <span class="nav-icon">📦</span> Inventario
+      </a>
+      <a href="{{ url_for('productos.nuevo_producto') }}" class="nav-item {% if request.endpoint == 'productos.nuevo_producto' %}active{% endif %}">
+        <span class="nav-icon">➕</span> Nuevo Activo
+      </a>
+      <a href="{{ url_for('reportes.activos') }}" class="nav-item {% if request.endpoint == 'reportes.activos' %}active{% endif %}">
+        <span class="nav-icon">🏷️</span> Control Activos
+      </a>
+
+      <div class="nav-section">Ventas</div>
+      <a href="{{ url_for('ventas.historial') }}" class="nav-item {% if request.endpoint == 'ventas.historial' %}active{% endif %}">
+        <span class="nav-icon">📋</span> Historial Ventas
+      </a>
+      <a href="{{ url_for('reportes.reportes') }}" class="nav-item {% if request.endpoint == 'reportes.reportes' %}active{% endif %}">
+        <span class="nav-icon">📈</span> Reportes
+      </a>
+
+      {% if current_user.rol == 'admin' %}
+      <div class="nav-section">Administración</div>
+      <a href="{{ url_for('admin.panel') }}" class="nav-item {% if request.endpoint == 'admin.panel' %}active{% endif %}">
+        <span class="nav-icon">⚙️</span> Panel Admin
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">{{ current_user.nombre[:2].upper() }}</div>
+        <div class="sidebar-user-info">
+          <div class="name">{{ current_user.nombre }}</div>
+          <div class="role">{{ current_user.rol }}</div>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm btn-full" style="margin-top:12px;">🚪 Cerrar Sesión</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <div class="topbar-right">
+        <div class="topbar-status"><span class="status-dot"></span>EN LÍNEA</div>
+        <div class="topbar-clock" id="clock">00:00:00</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="page-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'error' if category == 'error' else 'info' }}" data-auto-dismiss>
+            {{ '✓' if category == 'success' else '⚠️' }} {{ msg }}
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

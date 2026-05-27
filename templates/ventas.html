@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Historial de Ventas{% endblock %}
+{% block page_title %}Historial de Ventas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1>Historial de Ventas</h1>
+    <p>Todas las transacciones registradas</p>
+  </div>
+</div>
+
+<div class="grid-stats" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-card gold"><div class="stat-label">Total Período</div><div class="stat-value gold">${{ "{:,.0f}".format(total_periodo).replace(',','.') }}</div></div>
+  <div class="stat-card cyan"><div class="stat-label">Transacciones</div><div class="stat-value cyan">{{ ventas|length }}</div></div>
+  <div class="stat-card green"><div class="stat-label">Ticket Promedio</div><div class="stat-value green">${{ "{:,.0f}".format(ticket_avg).replace(',','.') }}</div></div>
+  <div class="stat-card purple"><div class="stat-label">Productos Vendidos</div><div class="stat-value purple">{{ total_items }}</div></div>
+</div>
+
+<!-- FILTERS -->
+<div class="card" style="margin-bottom:16px;padding:14px 16px;">
+  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+    <div>
+      <label class="form-label">Desde</label>
+      <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control">
+    </div>
+    <div>
+      <label class="form-label">Hasta</label>
+      <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control">
+    </div>
+    <div>
+      <label class="form-label">Método de Pago</label>
+      <select name="metodo" class="form-control">
+        <option value="">Todos</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="nequi">Nequi</option>
+        <option value="daviplata">Daviplata</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Sede</label>
+      <select name="sede" class="form-control">
+        <option value="">Todas</option>
+        {% for sede in sedes %}<option value="{{ sede.id }}">{{ sede.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-outline">🔍 Filtrar</button>
+    <a href="{{ url_for('ventas.historial') }}" class="btn btn-outline">✕</a>
+    <!-- Quick filters -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <a href="{{ url_for('ventas.historial', desde=(now|string)[:10], hasta=(now|string)[:10]) if false else url_for('ventas.historial') }}" class="filter-chip" onclick="setToday(event)">Hoy</a>
+      <a href="#" class="filter-chip" onclick="setWeek(event)">Semana</a>
+      <a href="#" class="filter-chip" onclick="setMonth(event)">Mes</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Factura</th>
+          <th>Fecha / Hora</th>
+          <th>Cliente</th>
+          <th>Productos</th>
+          <th>Método</th>
+          <th>Descuento</th>
+          <th>Total</th>
+          <th>Vendedor</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in ventas %}
+        <tr>
+          <td class="td-code">{{ v.numero_factura }}</td>
+          <td style="font-size:12px;white-space:nowrap;">{{ v.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            <div style="font-weight:600;font-size:13px;">{{ v.cliente_nombre }}</div>
+            {% if v.cliente_doc %}<div style="font-size:11px;color:var(--muted);">{{ v.cliente_doc }}</div>{% endif %}
+          </td>
+          <td style="font-size:12px;max-width:160px;">
+            {% for item in v.items[:2] %}
+              <div>{{ item.nombre_producto[:25] }}{% if item.nombre_producto|length > 25 %}...{% endif %} ×{{ item.cantidad }}</div>
+            {% endfor %}
+            {% if v.items|length > 2 %}<div style="color:var(--muted);">+{{ v.items|length - 2 }} más</div>{% endif %}
+          </td>
+          <td><span class="badge badge-gold" style="text-transform:capitalize;">{{ v.metodo_pago }}</span></td>
+          <td style="font-size:12px;">{% if v.descuento_pct > 0 %}<span style="color:var(--green);">{{ v.descuento_pct }}%</span>{% else %}—{% endif %}</td>
+          <td class="td-price">${{ "{:,.0f}".format(v.total).replace(',','.') }}</td>
+          <td style="font-size:12px;">{{ v.usuario.nombre if v.usuario else '—' }}</td>
+          <td>
+            {% if v.estado == 'completada' %}<span class="badge badge-ok">Completada</span>
+            {% else %}<span class="badge badge-out">Anulada</span>{% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="{{ url_for('ventas.ver_factura', vid=v.id) }}" target="_blank" class="btn btn-cyan btn-sm">🧾</a>
+              {% if v.estado == 'completada' and current_user.rol == 'admin' %}
+              <form method="POST" action="{{ url_for('ventas.anular_venta', vid=v.id) }}" onsubmit="return confirm('¿Anular esta venta y restaurar stock?')">
+                <button type="submit" class="btn btn-danger btn-sm">✕</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">Sin ventas en este período</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function setToday(e) {
+  e.preventDefault();
+  const t = new Date().toISOString().slice(0,10);
+  window.location.href = `{{ url_for('ventas.historial') }}?desde=${t}&hasta=${t}`;
+}
+function setWeek(e) {
+  e.preventDefault();
+  const to = new Date().toISOString().slice(0,10);
+  const from = new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+  window.location.href = `{{ url_for('ventas.historial') }}?desde=${from}&hasta=${to}`;
+}
+function setMonth(e) {
+  e.preventDefault();
+  const to = new Date().toISOString().slice(0,10);
+  const from = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  window.location.href = `{{ url_for('ventas.historial') }}?desde=${from}&hasta=${to}`;
+}
+</script>
+{% endblock %}

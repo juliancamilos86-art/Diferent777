@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Factura {{ venta.numero_factura }}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Courier New',monospace; background:#fff; color:#000; padding:20px; }
+    .receipt { max-width:340px; margin:0 auto; }
+    .header { text-align:center; border-bottom:2px dashed #aaa; padding-bottom:14px; margin-bottom:14px; }
+    .brand { font-size:22px; font-weight:900; letter-spacing:4px; }
+    .sub { font-size:10px; color:#666; letter-spacing:2px; margin-top:2px; }
+    .info-line { font-size:11px; color:#555; margin-top:2px; }
+    .factura-num { font-size:13px; font-weight:700; margin-top:8px; }
+    .section { margin-bottom:12px; }
+    .section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#888; border-bottom:1px solid #ddd; padding-bottom:3px; margin-bottom:8px; }
+    .row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px; }
+    .row.header-row { font-weight:700; border-bottom:1px solid #ddd; padding-bottom:3px; margin-bottom:5px; }
+    .item-name { flex:1; padding-right:8px; }
+    .item-qty { min-width:30px; text-align:center; }
+    .item-price { min-width:70px; text-align:right; }
+    .item-total { min-width:80px; text-align:right; font-weight:700; }
+    hr { border:none; border-top:1px dashed #aaa; margin:10px 0; }
+    .total-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+    .grand-total { font-size:18px; font-weight:900; border-top:2px solid #000; padding-top:8px; margin-top:6px; }
+    .barcode-area { text-align:center; margin-top:14px; padding-top:10px; border-top:1px dashed #aaa; }
+    .bars { display:flex; align-items:flex-end; justify-content:center; height:50px; gap:0.5px; margin-bottom:4px; }
+    .bar { background:#000; border-radius:1px 1px 0 0; }
+    .barcode-num { font-size:10px; letter-spacing:3px; }
+    .footer { text-align:center; margin-top:12px; font-size:10px; color:#888; }
+    .print-btn { display:block; text-align:center; margin:20px auto; padding:12px 32px; background:#000; color:#fff; border:none; border-radius:6px; font-size:14px; font-weight:700; cursor:pointer; letter-spacing:2px; font-family:'Courier New',monospace; }
+    @media print {
+      .print-btn { display:none; }
+      body { padding:0; }
+      .receipt { max-width:100%; }
+    }
+  </style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">🖨️ IMPRIMIR FACTURA</button>
+
+<div class="receipt">
+  <div class="header">
+    <div class="brand">{{ config.nombre }}</div>
+    {% if config.nit %}<div class="sub">NIT: {{ config.nit }}</div>{% endif %}
+    {% if config.direccion %}<div class="info-line">📍 {{ config.direccion }}</div>{% endif %}
+    {% if config.telefono %}<div class="info-line">📞 {{ config.telefono }}</div>{% endif %}
+    {% if config.email %}<div class="info-line">✉ {{ config.email }}</div>{% endif %}
+    <div class="factura-num">FACTURA {{ venta.numero_factura }}</div>
+    <div class="info-line">Fecha: {{ venta.fecha.strftime('%d/%m/%Y %H:%M') }}</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Cliente</div>
+    <div class="row"><span>Nombre:</span><span>{{ venta.cliente_nombre }}</span></div>
+    {% if venta.cliente_doc %}<div class="row"><span>Documento:</span><span>{{ venta.cliente_doc }}</span></div>{% endif %}
+    <div class="row"><span>Método pago:</span><span style="text-transform:uppercase;">{{ venta.metodo_pago }}</span></div>
+    {% if venta.sede %}<div class="row"><span>Sede:</span><span>{{ venta.sede.nombre }}</span></div>{% endif %}
+    {% if venta.usuario %}<div class="row"><span>Atendió:</span><span>{{ venta.usuario.nombre }}</span></div>{% endif %}
+  </div>
+
+  <div class="section">
+    <div class="section-title">Detalle</div>
+    <div class="row header-row">
+      <span class="item-name">Producto</span>
+      <span class="item-qty">Cant</span>
+      <span class="item-price">P.Unit</span>
+      <span class="item-total">Total</span>
+    </div>
+    {% for item in venta.items %}
+    <div style="margin-bottom:6px;">
+      <div style="font-size:12px;font-weight:700;">{{ item.nombre_producto }}</div>
+      <div class="row" style="font-size:11px;color:#555;">
+        <span class="item-name">{{ item.codigo_barras }}</span>
+        <span class="item-qty">{{ item.cantidad }}</span>
+        <span class="item-price">${{ "{:,.0f}".format(item.precio_unitario).replace(',','.') }}</span>
+        <span class="item-total">${{ "{:,.0f}".format(item.subtotal).replace(',','.') }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <hr>
+  <div class="total-row"><span>Subtotal:</span><span>${{ "{:,.0f}".format(venta.subtotal).replace(',','.') }}</span></div>
+  {% if venta.descuento_pct > 0 %}
+  <div class="total-row"><span>Descuento ({{ venta.descuento_pct }}%):</span><span>-${{ "{:,.0f}".format(venta.descuento_monto).replace(',','.') }}</span></div>
+  {% endif %}
+  <div class="total-row grand-total"><span>TOTAL:</span><span>${{ "{:,.0f}".format(venta.total).replace(',','.') }}</span></div>
+
+  {% if venta.notas %}
+  <div style="margin-top:10px;font-size:11px;color:#666;font-style:italic;">Notas: {{ venta.notas }}</div>
+  {% endif %}
+
+  <div class="barcode-area">
+    <div class="bars" id="barcodeDiv"></div>
+    <div class="barcode-num">{{ '%013d' % venta.id }}</div>
+  </div>
+
+  <div class="footer">
+    <div>¡Gracias por tu compra!</div>
+    {% if config.email %}<div>{{ config.email }}</div>{% endif %}
+    <div style="margin-top:6px;font-size:9px;">Conserve este comprobante</div>
+  </div>
+</div>
+
+<script>
+const div = document.getElementById('barcodeDiv');
+for(let i=0;i<38;i++){
+  const bar=document.createElement('div');
+  bar.className='bar';
+  bar.style.width=(1+Math.random()*2)+'px';
+  bar.style.height=(28+Math.random()*16)+'px';
+  div.appendChild(bar);
+}
+</script>
+</body>
+</html>
