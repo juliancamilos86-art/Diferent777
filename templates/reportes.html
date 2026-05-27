@@ -12,7 +12,7 @@
 
 <!-- PERIOD FILTERS -->
 <div class="card" style="margin-bottom:16px;padding:14px 16px;">
-  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+  <form method="GET" id="filterForm" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
     <div>
       <label class="form-label">Período Rápido</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -46,23 +46,28 @@
 
 <!-- STATS -->
 <div class="grid-stats" style="grid-template-columns:repeat(4,1fr);">
-  <div class="stat-card gold"><div class="stat-label">Total Ventas</div><div class="stat-value gold">${{ "{:,.0f}".format(total).replace(',','.') }}</div></div>
-  <div class="stat-card cyan"><div class="stat-label">Transacciones</div><div class="stat-value cyan">{{ count }}</div></div>
-  <div class="stat-card green"><div class="stat-label">Ganancia Bruta</div><div class="stat-value green">${{ "{:,.0f}".format(ganancia).replace(',','.') }}</div></div>
-  <div class="stat-card purple"><div class="stat-label">Margen Bruto</div><div class="stat-value purple">{{ "%.1f"|format(margen) }}%</div></div>
+  <div class="stat-card gold"><div class="stat-label">Total Ventas</div><div class="stat-value gold">${{ "{:,.0f}".format(total).replace(',','.') if total else '0' }}</div></div>
+  <div class="stat-card cyan"><div class="stat-label">Transacciones</div><div class="stat-value cyan">{{ count if count else 0 }}</div></div>
+  <div class="stat-card green"><div class="stat-label">Ganancia Bruta</div><div class="stat-value green">${{ "{:,.0f}".format(ganancia).replace(',','.') if ganancia else '0' }}</div></div>
+  <div class="stat-card purple"><div class="stat-label">Margen Bruto</div><div class="stat-value purple">{{ "%.1f"|format(margen) if margen else '0' }}%</div></div>
 </div>
 
 <!-- CHARTS ROW -->
 <div class="grid-2" style="margin-bottom:16px;gap:16px;">
   <div class="card">
     <div class="card-title" style="margin-bottom:12px;">📈 Ventas por Día</div>
-    <canvas id="daysChart" height="200"></canvas>
+    <div style="position:relative;height:250px;min-height:250px;">
+      <canvas id="daysChart" height="250" style="max-height:250px;"></canvas>
+    </div>
+    {% if not dias_labels or dias_labels|length == 0 %}
+    <div style="text-align:center;padding:20px;color:var(--muted);">No hay datos para mostrar</div>
+    {% endif %}
   </div>
   <div class="grid-2" style="gap:16px;align-content:start;">
     <!-- METODOS -->
     <div class="card" style="grid-column:1/-1;">
       <div class="card-title" style="margin-bottom:12px;">💳 Ventas por Método de Pago</div>
-      {% if metodos %}
+      {% if metodos and metodos.items() %}
         {% set max_m = metodos.values()|max %}
         {% for metodo, monto in metodos.items()|sort(attribute='1',reverse=True) %}
         <div style="margin-bottom:10px;">
@@ -71,19 +76,19 @@
             <span style="font-family:'Orbitron',monospace;font-size:11px;color:var(--gold2);">${{ "{:,.0f}".format(monto).replace(',','.') }}</span>
           </div>
           <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:{{ (monto/max_m*100)|round|int }}%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:4px;"></div>
+            <div style="height:100%;width:{{ (monto/max_m*100)|round|int if max_m > 0 else 0 }}%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:4px;"></div>
           </div>
         </div>
         {% endfor %}
       {% else %}
-        <div style="color:var(--muted);text-align:center;padding:20px;">Sin datos</div>
+        <div style="color:var(--muted);text-align:center;padding:20px;">Sin datos de pagos</div>
       {% endif %}
     </div>
 
     <!-- CATEGORIAS -->
     <div class="card" style="grid-column:1/-1;">
       <div class="card-title" style="margin-bottom:12px;">👗 Ventas por Categoría</div>
-      {% if categorias_venta %}
+      {% if categorias_venta and categorias_venta.items() %}
         {% set max_c = categorias_venta.values()|max %}
         {% set colors = ['var(--gold2)','var(--cyan)','var(--green)','#bb86fc','var(--orange)','var(--red)'] %}
         {% for cat, monto in categorias_venta.items()|sort(attribute='1',reverse=True) %}
@@ -93,12 +98,12 @@
             <span style="font-family:'Orbitron',monospace;font-size:11px;color:{{ colors[loop.index0 % 6] }};">${{ "{:,.0f}".format(monto).replace(',','.') }}</span>
           </div>
           <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:{{ (monto/max_c*100)|round|int }}%;background:{{ colors[loop.index0 % 6] }};border-radius:4px;opacity:0.8;"></div>
+            <div style="height:100%;width:{{ (monto/max_c*100)|round|int if max_c > 0 else 0 }}%;background:{{ colors[loop.index0 % 6] }};border-radius:4px;opacity:0.8;"></div>
           </div>
         </div>
         {% endfor %}
       {% else %}
-        <div style="color:var(--muted);text-align:center;padding:20px;">Sin datos</div>
+        <div style="color:var(--muted);text-align:center;padding:20px;">Sin datos de categorías</div>
       {% endif %}
     </div>
   </div>
@@ -107,8 +112,8 @@
 <!-- TOP PRODUCTS -->
 <div class="card">
   <div class="card-title" style="margin-bottom:16px;">🏆 Top 10 Productos</div>
-  {% if top_productos %}
-  <div class="table-wrap">
+  {% if top_productos and top_productos|length > 0 %}
+  <div class="table-wrap" style="overflow-x:auto;">
     <table class="table">
       <thead>
         <tr><th>#</th><th>Producto</th><th>Unidades</th><th>Total Ventas</th></tr>
@@ -117,7 +122,7 @@
         {% for nombre, data in top_productos %}
         <tr>
           <td style="font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--border);">{{ loop.index }}</td>
-          <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">{{ data.emoji }}</span><span style="font-weight:600;">{{ nombre }}</span></div></td>
+          <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">{{ data.emoji if data.emoji else '📦' }}</span><span style="font-weight:600;">{{ nombre }}</span></div></td>
           <td style="font-family:'Orbitron',monospace;font-weight:700;color:var(--cyan);">{{ data.qty }}</td>
           <td class="td-price">${{ "{:,.0f}".format(data.total).replace(',','.') }}</td>
         </tr>
@@ -130,30 +135,208 @@
   {% endif %}
 </div>
 
+<!-- Loading Indicator -->
+<div id="loadingOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:center;">
+  <div style="background:var(--card-bg);padding:20px;border-radius:8px;text-align:center;">
+    <div class="spinner"></div>
+    <p style="margin-top:12px;">Cargando datos...</p>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const labels = {{ dias_labels|tojson }};
-const values = {{ dias_values|tojson }};
-const ctx = document.getElementById('daysChart').getContext('2d');
-new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: labels,
-    datasets: [{
-      label: 'Ventas', data: values,
-      borderColor: '#f5c842', backgroundColor: 'rgba(212,160,23,0.1)',
-      borderWidth: 2, fill: true, tension: 0.4,
-      pointBackgroundColor: '#f5c842', pointRadius: 3
-    }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + Math.round(c.raw).toLocaleString('es-CO') } } },
-    scales: {
-      x: { grid: { color: 'rgba(30,30,53,0.8)' }, ticks: { color: '#6b6b8a', maxTicksLimit: 10, font: { family: 'Rajdhani', size: 11 } } },
-      y: { grid: { color: 'rgba(30,30,53,0.8)' }, ticks: { color: '#6b6b8a', font: { family: 'Rajdhani' }, callback: v => '$' + Math.round(v/1000) + 'k' } }
+// Variables para el gráfico y timeout
+let chartInstance = null;
+let chartTimeout = null;
+
+// Función para formatear números
+function formatNumber(num) {
+    return new Intl.NumberFormat('es-CO').format(Math.round(num));
+}
+
+// Función para crear el gráfico de forma segura
+function createChart() {
+    const canvas = document.getElementById('daysChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const labels = {{ dias_labels|tojson|safe if dias_labels else '[]' }};
+    const values = {{ dias_values|tojson|safe if dias_values else '[]' }};
+    
+    // Validar datos
+    if (!labels || labels.length === 0 || !values || values.length === 0) {
+        console.log('No hay datos para el gráfico');
+        return;
     }
-  }
+    
+    // Destruir gráfico anterior si existe
+    if (chartInstance) {
+        try {
+            chartInstance.destroy();
+        } catch(e) {
+            console.log('Error destruyendo gráfico:', e);
+        }
+        chartInstance = null;
+    }
+    
+    // Crear nuevo gráfico
+    try {
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Ventas (COP)',
+                    data: values,
+                    borderColor: '#f5c842',
+                    backgroundColor: 'rgba(212,160,23,0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#f5c842',
+                    pointBorderColor: '#f5c842',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { 
+                        display: true,
+                        labels: { color: '#6b6b8a', font: { family: 'Rajdhani', size: 12 } }
+                    },
+                    tooltip: { 
+                        callbacks: { 
+                            label: function(context) {
+                                return 'Ventas: $' + formatNumber(context.raw);
+                            }
+                        } 
+                    }
+                },
+                scales: {
+                    x: { 
+                        grid: { color: 'rgba(30,30,53,0.3)' }, 
+                        ticks: { color: '#6b6b8a', maxTicksLimit: 10, font: { family: 'Rajdhani', size: 11 } } 
+                    },
+                    y: { 
+                        grid: { color: 'rgba(30,30,53,0.3)' }, 
+                        ticks: { 
+                            color: '#6b6b8a', 
+                            font: { family: 'Rajdhani', size: 11 },
+                            callback: function(v) { 
+                                return '$' + formatNumber(v/1000) + 'k'; 
+                            } 
+                        } 
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+        console.log('Gráfico creado exitosamente');
+    } catch(e) {
+        console.error('Error creando gráfico:', e);
+    }
+}
+
+// Función para mostrar loading
+function showLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+
+// Función para ocultar loading
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+// Manejar cambios en los filtros con debounce
+let filterTimeout = null;
+const filterForm = document.getElementById('filterForm');
+if (filterForm) {
+    filterForm.addEventListener('submit', function(e) {
+        showLoading();
+        // Timeout para evitar que se quede cargando
+        if (filterTimeout) clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(() => {
+            hideLoading();
+        }, 10000);
+    });
+}
+
+// Inicializar gráfico cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Pequeño delay para asegurar que el canvas está listo
+    setTimeout(() => {
+        createChart();
+    }, 100);
+    
+    // Recrear gráfico si la ventana cambia de tamaño
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (chartInstance) {
+                chartInstance.resize();
+            }
+        }, 250);
+    });
+});
+
+// Manejar errores del gráfico
+window.addEventListener('error', function(e) {
+    if (e.message && e.message.includes('Chart')) {
+        console.error('Error de Chart.js:', e);
+        const canvas = document.getElementById('daysChart');
+        if (canvas && canvas.parentNode) {
+            canvas.parentNode.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">Error cargando gráfico. Recarga la página.</div>';
+        }
+    }
 });
 </script>
+
+<style>
+/* Estilos para el loading spinner */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(212,160,23,0.3);
+    border-radius: 50%;
+    border-top-color: var(--gold);
+    animation: spin 1s ease-in-out infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.filter-chip {
+    display: inline-block;
+    padding: 6px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.filter-chip:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.filter-chip.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #000;
+}
+</style>
 {% endblock %}
