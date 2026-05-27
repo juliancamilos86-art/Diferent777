@@ -132,8 +132,13 @@ def _seed():
     db.session.commit()
 
 
-# 👇 ESTO ES LO QUE CAMBIA - Crear la app global que Gunicorn necesita
+# ============================================================
+# 👇 IMPORTANTE: Esta es la variable global que Gunicorn busca
+# ============================================================
 app = create_app()
 
+# ============================================================
+# 👇 Esto solo se ejecuta si corres el script directamente
+# ============================================================
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
