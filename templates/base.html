@@ -2,18 +2,461 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}DIFERENT 777{% endblock %} — Sistema Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pos.css') }}">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-dark: #0a0a0f;
+      --bg-darker: #050508;
+      --sidebar-bg: rgba(18, 18, 28, 0.98);
+      --card-bg: rgba(18, 18, 28, 0.95);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8e8f0;
+      --muted: #8a8aa3;
+      --gold: #d4a017;
+      --gold2: #f5c842;
+      --cyan: #00e5ff;
+      --green: #00e676;
+      --red: #ff4081;
+      --orange: #ff6d00;
+      --purple: #bb86fc;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Canvas de fondo */
+    .fractal-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Layout Principal */
+    .app-wrapper {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ========== SIDEBAR DESKTOP ========== */
+    .sidebar {
+      width: 280px;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 100;
+      transition: var(--transition);
+    }
+
+    .sidebar-logo {
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+    }
+
+    .logo-brand {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 20px 12px;
+      overflow-y: auto;
+    }
+
+    .nav-section {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      padding: 12px 12px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      margin: 4px 0;
+      border-radius: 12px;
+      color: var(--text);
+      text-decoration: none;
+      transition: var(--transition);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: rgba(212, 160, 23, 0.1);
+      color: var(--gold);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(212, 160, 23, 0.15), rgba(0, 229, 255, 0.05));
+      border-left: 2px solid var(--gold);
+      color: var(--gold);
+    }
+
+    .nav-icon {
+      font-size: 20px;
+      width: 28px;
+    }
+
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .sidebar-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #000;
+    }
+
+    .sidebar-user-info .name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .sidebar-user-info .role {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: capitalize;
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: rgba(18, 18, 28, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-title {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text), var(--muted));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .topbar-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .topbar-clock {
+      font-family: 'Orbitron', monospace;
+      font-size: 14px;
+      color: var(--gold);
+    }
+
+    .page-content {
+      padding: 24px;
+    }
+
+    /* ========== BOTTOM NAVIGATION MÓVIL ========== */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(18, 18, 28, 0.98);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+      padding-bottom: env(safe-area-inset-bottom, 12px);
+      z-index: 200;
+    }
+
+    .bottom-nav-items {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .bottom-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--muted);
+      transition: var(--transition);
+      flex: 1;
+      text-align: center;
+    }
+
+    .bottom-nav-item .nav-icon {
+      font-size: 22px;
+    }
+
+    .bottom-nav-item .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .bottom-nav-item.active {
+      color: var(--gold);
+      background: rgba(212, 160, 23, 0.1);
+    }
+
+    .bottom-nav-item:hover {
+      color: var(--gold);
+    }
+
+    /* Botón de menú móvil */
+    .mobile-menu-btn {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 150;
+      background: rgba(18, 18, 28, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      font-size: 24px;
+    }
+
+    /* Overlay para menú móvil */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 90;
+    }
+
+    /* Alertas */
+    .alert {
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .alert-success {
+      background: rgba(0, 230, 118, 0.1);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      color: var(--green);
+    }
+
+    .alert-error {
+      background: rgba(255, 64, 129, 0.1);
+      border: 1px solid rgba(255, 64, 129, 0.3);
+      color: var(--red);
+    }
+
+    .alert-info {
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: var(--cyan);
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--border);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--gold);
+      border-radius: 3px;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
+      .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .bottom-nav {
+        display: block;
+      }
+
+      .topbar {
+        padding-left: 70px;
+      }
+
+      .topbar-title {
+        font-size: 16px;
+      }
+
+      .page-content {
+        padding: 16px;
+        padding-bottom: 80px;
+      }
+
+      .sidebar-footer {
+        margin-bottom: 20px;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-menu-btn {
+        display: none;
+      }
+    }
+  </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
 <canvas class="fractal-canvas" id="fractalCanvas"></canvas>
 
+<!-- Botón menú móvil -->
+<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menú">
+  ☰
+</button>
+
+<!-- Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <div class="app-wrapper">
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <svg class="logo-icon" viewBox="0 0 40 40">
         <polygon points="20,2 38,32 2,32" fill="none" stroke="#d4a017" stroke-width="2"/>
@@ -30,35 +473,35 @@
     <nav class="sidebar-nav">
       <div class="nav-section">Principal</div>
       <a href="{{ url_for('dashboard.index') }}" class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-        <span class="nav-icon">📊</span> Dashboard
+        <span class="nav-icon">📊</span> <span>Dashboard</span>
       </a>
       <a href="{{ url_for('ventas.pos') }}" class="nav-item {% if request.endpoint == 'ventas.pos' %}active{% endif %}">
-        <span class="nav-icon">🛒</span> Punto de Venta
+        <span class="nav-icon">🛒</span> <span>Punto de Venta</span>
       </a>
 
       <div class="nav-section">Inventario</div>
       <a href="{{ url_for('productos.inventario') }}" class="nav-item {% if request.endpoint == 'productos.inventario' %}active{% endif %}">
-        <span class="nav-icon">📦</span> Inventario
+        <span class="nav-icon">📦</span> <span>Inventario</span>
       </a>
       <a href="{{ url_for('productos.nuevo_producto') }}" class="nav-item {% if request.endpoint == 'productos.nuevo_producto' %}active{% endif %}">
-        <span class="nav-icon">➕</span> Nuevo Activo
+        <span class="nav-icon">➕</span> <span>Nuevo Activo</span>
       </a>
       <a href="{{ url_for('reportes.activos') }}" class="nav-item {% if request.endpoint == 'reportes.activos' %}active{% endif %}">
-        <span class="nav-icon">🏷️</span> Control Activos
+        <span class="nav-icon">🏷️</span> <span>Control Activos</span>
       </a>
 
       <div class="nav-section">Ventas</div>
       <a href="{{ url_for('ventas.historial') }}" class="nav-item {% if request.endpoint == 'ventas.historial' %}active{% endif %}">
-        <span class="nav-icon">📋</span> Historial Ventas
+        <span class="nav-icon">📋</span> <span>Historial Ventas</span>
       </a>
       <a href="{{ url_for('reportes.reportes') }}" class="nav-item {% if request.endpoint == 'reportes.reportes' %}active{% endif %}">
-        <span class="nav-icon">📈</span> Reportes
+        <span class="nav-icon">📈</span> <span>Reportes</span>
       </a>
 
       {% if current_user.rol == 'admin' %}
       <div class="nav-section">Administración</div>
       <a href="{{ url_for('admin.panel') }}" class="nav-item {% if request.endpoint == 'admin.panel' %}active{% endif %}">
-        <span class="nav-icon">⚙️</span> Panel Admin
+        <span class="nav-icon">⚙️</span> <span>Panel Admin</span>
       </a>
       {% endif %}
     </nav>
@@ -71,7 +514,9 @@
           <div class="role">{{ current_user.rol }}</div>
         </div>
       </div>
-      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm btn-full" style="margin-top:12px;">🚪 Cerrar Sesión</a>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm btn-full" style="margin-top:12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        🚪 Cerrar Sesión
+      </a>
     </div>
   </aside>
 
@@ -91,7 +536,7 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, msg in messages %}
           <div class="alert alert-{{ 'success' if category == 'success' else 'error' if category == 'error' else 'info' }}" data-auto-dismiss>
-            {{ '✓' if category == 'success' else '⚠️' }} {{ msg }}
+            {{ '✓' if category == 'success' else '⚠️' if category == 'error' else 'ℹ️' }} {{ msg }}
           </div>
         {% endfor %}
       {% endwith %}
@@ -101,7 +546,147 @@
   </div>
 </div>
 
+<!-- BOTTOM NAVIGATION MÓVIL -->
+<div class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-items">
+    <a href="{{ url_for('dashboard.index') }}" class="bottom-nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Dashboard</span>
+    </a>
+    <a href="{{ url_for('ventas.pos') }}" class="bottom-nav-item {% if request.endpoint == 'ventas.pos' %}active{% endif %}">
+      <span class="nav-icon">🛒</span>
+      <span class="nav-label">POS</span>
+    </a>
+    <a href="{{ url_for('productos.inventario') }}" class="bottom-nav-item {% if request.endpoint == 'productos.inventario' %}active{% endif %}">
+      <span class="nav-icon">📦</span>
+      <span class="nav-label">Inventario</span>
+    </a>
+    <a href="{{ url_for('ventas.historial') }}" class="bottom-nav-item {% if request.endpoint == 'ventas.historial' %}active{% endif %}">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Ventas</span>
+    </a>
+    <a href="{{ url_for('reportes.reportes') }}" class="bottom-nav-item {% if request.endpoint == 'reportes.reportes' %}active{% endif %}">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Reportes</span>
+    </a>
+    {% if current_user.rol == 'admin' %}
+    <a href="{{ url_for('admin.panel') }}" class="bottom-nav-item {% if request.endpoint == 'admin.panel' %}active{% endif %}">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Admin</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
+
+<script>
+  // Reloj en tiempo real
+  function updateClock() {
+    const clock = document.getElementById('clock');
+    if (clock) {
+      const now = new Date();
+      clock.textContent = now.toLocaleTimeString('es-CO');
+    }
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Menú móvil
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  function closeMenu() {
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  function openMenu() {
+    if (sidebar) sidebar.classList.add('open');
+    if (overlay) overlay.style.display = 'block';
+  }
+
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (sidebar.classList.contains('open')) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+  }
+
+  if (overlay) {
+    overlay.addEventListener('click', closeMenu);
+  }
+
+  // Cerrar menú al hacer click en un enlace
+  document.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        closeMenu();
+      }
+    });
+  });
+
+  // Auto-dismiss alerts
+  document.querySelectorAll('[data-auto-dismiss]').forEach(alert => {
+    setTimeout(() => {
+      alert.style.opacity = '0';
+      setTimeout(() => alert.remove(), 300);
+    }, 5000);
+  });
+
+  // Canvas de fondo animado
+  const canvas = document.getElementById('fractalCanvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    
+    function drawBackground() {
+      if (!ctx) return;
+      
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, '#0a0a0f');
+      gradient.addColorStop(1, '#050508');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const time = Date.now() / 3000;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x += 30) {
+          const y = canvas.height - 30 + Math.sin(x * 0.008 + time + i * 2) * 20 + Math.cos(x * 0.012 - time + i) * 15;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.lineTo(0, canvas.height);
+        ctx.fillStyle = `rgba(212, 160, 23, ${0.02 - i * 0.005})`;
+        ctx.fill();
+      }
+      
+      requestAnimationFrame(drawBackground);
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    drawBackground();
+  }
+
+  // Detectar orientación y cerrar menú
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+      closeMenu();
+    }
+  });
+</script>
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% block extra_js %}{% endblock %}
