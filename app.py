@@ -13,10 +13,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'diferent777-super-secret-2025')
 
     db_url = os.environ.get('DATABASE_URL', '')
-    if not db_url:
-        # Fallback: hardcoded Neon (user's production DB)
-        db_url = 'postgresql://neondb_owner:npg_wCbG53PncmYo@ep-fancy-fire-a486l833-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require'
-    # Render gives postgres:// — SQLAlchemy needs postgresql://
+ 
     if db_url.startswith('postgres://'):
         db_url = db_url.replace('postgres://', 'postgresql://', 1)
 
