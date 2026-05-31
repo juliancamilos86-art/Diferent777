@@ -3,15 +3,26 @@ from flask_login import LoginManager
 from models import db
 from datetime import datetime
 import os
+import secrets
 
 login_manager = LoginManager()
 
 def create_app():
     app = Flask(__name__)
 
-    # ── Config ──────────────────────────────────────────────
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'diferent777-super-secret-2025')
-
+    # ── Configuración de Seguridad desde Environment ──────────────────────────────
+    # Obtener SECRET_KEY desde variable de entorno o generar una segura
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        # En producción, Render debe tener esta variable
+        if os.environ.get('RENDER'):
+            raise ValueError("SECRET_KEY no configurada en Render. Configúrala en Environment Variables.")
+        # Solo para desarrollo local
+        secret_key = 'dev-secret-key-diferent777-2025'
+    
+    app.config['SECRET_KEY'] = secret_key
+    
+    # ── Configuración de Base de Datos ──────────────────────────────────────────
     db_url = os.environ.get('DATABASE_URL', '')
     
     # Si no hay URL de base de datos, usar SQLite para pruebas
@@ -35,12 +46,24 @@ def create_app():
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_pre_ping': True,
             'pool_recycle': 300,
-            'connect_args': {'connect_timeout': 10}
+            'connect_args': {
+                'connect_timeout': 10,
+                'keepalives': 1,
+                'keepalives_idle': 30,
+                'keepalives_interval': 10,
+                'keepalives_count': 5
+            }
         }
     else:
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
     
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+    # ── Otras configuraciones desde Environment ──────────────────────────────────
+    app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['PERMANENT_SESSION_LIFETIME'] = int(os.environ.get('SESSION_LIFETIME', 86400))  # 24 horas
 
     # ── Extensions ──────────────────────────────────────────
     db.init_app(app)
@@ -181,4 +204,6 @@ app = create_app()
 # 👇 Esto solo se ejecuta si corres el script directamente
 # ============================================================
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug, host='0.0.0.0', port=port)
