@@ -4,6 +4,9 @@
 
 {% block content %}
 <style>
+  /* ============================================================
+     ESTILOS POS - TEMA DINÁMICO
+     ============================================================ */
   .pos-layout {
     display: flex;
     gap: 20px;
@@ -28,6 +31,7 @@
     position: sticky;
     top: 20px;
     max-height: calc(100vh - 100px);
+    transition: background 0.3s, border-color 0.3s;
   }
   
   .cart-header {
@@ -38,6 +42,7 @@
     align-items: center;
     background: linear-gradient(135deg, rgba(212,160,23,0.1), transparent);
     border-radius: 16px 16px 0 0;
+    flex-shrink: 0;
   }
   
   .cart-header-title {
@@ -51,6 +56,7 @@
     overflow-y: auto;
     padding: 12px;
     max-height: 400px;
+    min-height: 100px;
   }
   
   .cart-item {
@@ -63,6 +69,12 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     transition: all 0.2s;
+    animation: slideIn 0.2s ease;
+  }
+  
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
   }
   
   .cart-item:hover {
@@ -72,11 +84,15 @@
   
   .cart-item-info {
     flex: 1;
+    min-width: 0;
   }
   
   .cart-item-name {
     font-weight: 600;
     font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .cart-item-price {
@@ -89,13 +105,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
   }
   
   .cart-item-qty {
-    width: 50px;
+    min-width: 30px;
     text-align: center;
     font-weight: 700;
     color: var(--cyan);
+    font-family: 'Orbitron', monospace;
   }
   
   .cart-item-total {
@@ -104,6 +122,7 @@
     font-weight: 700;
     color: var(--gold2);
     font-family: 'Orbitron', monospace;
+    flex-shrink: 0;
   }
   
   .cart-footer {
@@ -111,6 +130,7 @@
     border-top: 1px solid var(--border);
     background: rgba(0,0,0,0.2);
     border-radius: 0 0 16px 16px;
+    flex-shrink: 0;
   }
   
   .total-row {
@@ -150,6 +170,7 @@
     cursor: pointer;
     transition: all 0.2s;
     text-align: center;
+    position: relative;
   }
   
   .product-card:hover {
@@ -158,9 +179,18 @@
     box-shadow: 0 4px 12px rgba(212,160,23,0.2);
   }
   
+  .product-card:active {
+    transform: scale(0.95);
+  }
+  
   .product-card.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+  
+  .product-card.disabled:hover {
+    transform: none;
+    border-color: var(--border);
   }
   
   .product-emoji {
@@ -192,10 +222,31 @@
   
   .product-stock.low {
     color: var(--orange);
+    font-weight: 700;
   }
   
   .product-stock.out {
     color: var(--red);
+    font-weight: 700;
+  }
+  
+  .product-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  
+  .product-badge.in-cart {
+    background: var(--gold);
+    color: #000;
+    border-color: var(--gold);
   }
   
   .scan-bar {
@@ -219,9 +270,15 @@
     cursor: pointer;
     font-size: 12px;
     transition: all 0.2s;
+    color: var(--text-muted);
   }
   
-  .filter-chip:hover, .filter-chip.active {
+  .filter-chip:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  
+  .filter-chip.active {
     background: var(--gold);
     border-color: var(--gold);
     color: #000;
@@ -234,11 +291,20 @@
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
+    color: var(--text);
+    font-size: 14px;
   }
   
   .btn-icon:hover {
     background: var(--gold);
     border-color: var(--gold);
+    color: #000;
+  }
+  
+  .btn-icon.danger:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
   }
   
   .loading-spinner {
@@ -312,15 +378,20 @@
   
   .modal-summary-item .value {
     font-weight: 600;
+    color: var(--text);
   }
   
   .modal-summary-item.total {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     border-top: 2px solid var(--gold);
-    padding-top: 12px;
-    margin-top: 8px;
-    color: var(--gold);
+    padding-top: 14px;
+    margin-top: 10px;
+  }
+  
+  .modal-summary-item.total .value {
+    color: var(--gold2);
+    font-size: 24px;
   }
   
   .modal-actions {
@@ -355,6 +426,12 @@
   .modal-actions .btn-confirm:hover {
     filter: brightness(1.1);
     transform: translateY(-1px);
+  }
+  
+  .modal-actions .btn-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 
   /* ===== TOAST DE FACTURA ===== */
@@ -430,17 +507,32 @@
     color: var(--text);
   }
   
-  @keyframes toastIn {
+  @keyframes slideUp {
     from { transform: translateX(-50%) translateY(30px); opacity: 0; }
     to { transform: translateX(-50%) translateY(0); opacity: 1; }
   }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1024px) {
+    .pos-layout {
+      gap: 12px;
+    }
+    .pos-grid {
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    }
+  }
   
-  @media (max-width: 900px) {
+  @media (max-width: 768px) {
     .pos-layout {
       flex-direction: column;
     }
     .cart-panel {
       position: static;
+      max-height: 500px;
+    }
+    .pos-grid {
+      max-height: 350px;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     }
     .modal-box {
       padding: 20px;
@@ -449,18 +541,59 @@
     .factura-toast {
       bottom: 10px;
       padding: 16px;
+      width: 95%;
+    }
+    .cart-item {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .cart-item-total {
+      min-width: 60px;
+      font-size: 12px;
+    }
+    .modal-actions {
+      flex-direction: column;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .pos-grid {
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 8px;
+    }
+    .product-card {
+      padding: 8px;
+    }
+    .product-emoji {
+      font-size: 28px;
+    }
+    .product-name {
+      font-size: 10px;
+    }
+    .product-price {
+      font-size: 11px;
     }
   }
 </style>
 
+<!-- ============================================================
+   LAYOUT PRINCIPAL
+   ============================================================ -->
 <div class="pos-layout">
+  
   <!-- Panel Izquierdo - Productos -->
   <div class="pos-left">
     <div class="card" style="padding: 16px;">
+      <!-- Barra de búsqueda y escáner -->
       <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
         <div class="scan-bar" style="flex: 1; min-width: 220px;">
-          <input type="text" id="scanInput" class="form-control" placeholder="📷 Escanear código de barras..." autocomplete="off" style="flex: 1;">
-          <button class="btn btn-cyan" onclick="scanBarcode()" style="padding: 8px 16px;">🔍 Buscar</button>
+          <input type="text" id="scanInput" class="form-control" 
+                 placeholder="📷 Escanear código de barras..." 
+                 autocomplete="off" style="flex: 1;" 
+                 aria-label="Escanear código de barras">
+          <button class="btn btn-cyan" onclick="scanBarcode()" style="padding: 8px 16px; white-space: nowrap;">
+            🔍 Buscar
+          </button>
         </div>
         <select id="sedeId" class="form-control" style="max-width: 180px;">
           {% for sede in sedes %}
@@ -469,26 +602,40 @@
         </select>
       </div>
       
+      <!-- Filtros de categoría -->
       <div class="filter-row">
         <button class="filter-chip active" onclick="filterCategory(this, '')">📦 Todos</button>
         {% for cat in categorias %}
-          <button class="filter-chip" onclick="filterCategory(this, '{{ cat.nombre }}')">{{ cat.emoji }} {{ cat.nombre }}</button>
+          <button class="filter-chip" onclick="filterCategory(this, '{{ cat.nombre }}')">
+            {{ cat.emoji }} {{ cat.nombre }}
+          </button>
         {% endfor %}
       </div>
       
-      <input type="text" id="searchInput" class="form-control" placeholder="🔍 Buscar producto por nombre..." onkeyup="searchProducts()" style="margin-bottom: 16px;">
+      <!-- Buscador por nombre -->
+      <input type="text" id="searchInput" class="form-control" 
+             placeholder="🔍 Buscar producto por nombre..." 
+             onkeyup="searchProducts()" 
+             aria-label="Buscar productos" 
+             style="margin-bottom: 16px;">
     </div>
     
+    <!-- Grid de productos -->
     <div class="pos-grid" id="posGrid">
-      <div class="loading-spinner">Cargando productos...</div>
+      <div class="loading-spinner">⏳ Cargando productos...</div>
     </div>
   </div>
 
   <!-- Panel Derecho - Carrito -->
   <div class="cart-panel">
     <div class="cart-header">
-      <span class="cart-header-title">🧾 CARRITO DE COMPRAS</span>
-      <span style="font-size: 12px; color: var(--text-muted);" id="cartCount">0 items</span>
+      <span class="cart-header-title">🧾 CARRITO</span>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 12px; color: var(--text-muted);" id="cartCount">0 items</span>
+        <button class="btn-icon danger" onclick="clearCart()" title="Limpiar carrito" aria-label="Limpiar carrito">
+          🗑️
+        </button>
+      </div>
     </div>
     
     <div class="cart-items" id="cartItems">
@@ -499,14 +646,16 @@
     </div>
     
     <div class="cart-footer">
-      <div class="form-group" style="margin-bottom: 12px;">
-        <label class="form-label">👤 Cliente</label>
-        <input type="text" id="clienteNombre" class="form-control" placeholder="Nombre del cliente (opcional)">
-      </div>
-      
-      <div class="form-group" style="margin-bottom: 12px;">
-        <label class="form-label">📄 Documento</label>
-        <input type="text" id="clienteDoc" class="form-control" placeholder="CC / NIT (opcional)">
+      <!-- Datos del cliente -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label class="form-label">👤 Cliente</label>
+          <input type="text" id="clienteNombre" class="form-control" placeholder="Nombre (opcional)">
+        </div>
+        <div>
+          <label class="form-label">📄 Documento</label>
+          <input type="text" id="clienteDoc" class="form-control" placeholder="CC / NIT (opcional)">
+        </div>
       </div>
       
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
@@ -522,7 +671,8 @@
         </div>
         <div>
           <label class="form-label">🏷️ Descuento %</label>
-          <input type="number" id="descuentoPct" class="form-control" value="0" min="0" max="100" step="1" oninput="calcularTotales()">
+          <input type="number" id="descuentoPct" class="form-control" value="0" min="0" max="100" step="1" 
+                 oninput="calcularTotales()" aria-label="Porcentaje de descuento">
         </div>
       </div>
       
@@ -533,6 +683,7 @@
       
       <hr style="border-color: var(--border); margin: 12px 0;">
       
+      <!-- Totales -->
       <div class="total-row">
         <span class="lbl">Subtotal</span>
         <span id="subtotal" style="font-family: 'Orbitron', monospace;">$0</span>
@@ -546,8 +697,10 @@
         <span id="totalDisplay" style="color: var(--gold);">$0</span>
       </div>
       
+      <!-- Botones de acción -->
       <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
-        <button id="btnProcesar" class="btn btn-gold btn-full" onclick="mostrarConfirmacion()" style="padding: 12px; font-size: 16px;">
+        <button id="btnProcesar" class="btn btn-gold btn-full" onclick="mostrarConfirmacion()" 
+                style="padding: 12px; font-size: 16px;" aria-label="Procesar venta">
           ✓ PROCESAR VENTA
         </button>
         <button class="btn btn-outline btn-full" onclick="clearCart()" style="padding: 10px;">
@@ -558,10 +711,12 @@
   </div>
 </div>
 
-<!-- ===== MODAL DE CONFIRMACIÓN ===== -->
-<div class="modal-overlay" id="confirmModal">
+<!-- ============================================================
+   MODAL DE CONFIRMACIÓN
+   ============================================================ -->
+<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal-box">
-    <div class="modal-title">📋 CONFIRMAR VENTA</div>
+    <div class="modal-title" id="modalTitle">📋 CONFIRMAR VENTA</div>
     <p style="text-align: center; color: var(--text-muted); margin-bottom: 16px;">
       Revisa los detalles antes de procesar
     </p>
@@ -578,51 +733,147 @@
     </div>
     
     <div class="modal-actions">
-      <button class="btn btn-cancel" onclick="cerrarModal()">❌ Cancelar</button>
-      <button class="btn btn-confirm" onclick="procesarVenta()">✅ Confirmar Venta</button>
+      <button class="btn btn-cancel" onclick="cerrarModal()" aria-label="Cancelar">❌ Cancelar</button>
+      <button class="btn btn-confirm" id="btnConfirmarVenta" onclick="procesarVenta()" aria-label="Confirmar venta">
+        ✅ Confirmar Venta
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ===== CONTENEDOR PARA TOAST DE FACTURA ===== -->
+<!-- ============================================================
+   CONTENEDOR PARA TOAST DE FACTURA
+   ============================================================ -->
 <div id="facturaToastContainer"></div>
 
+<!-- ============================================================
+   SCRIPTS - CÓDIGO COMPLETO Y OPTIMIZADO
+   ============================================================ -->
 <script>
-// Variables globales
+'use strict';
+
+// ============================================================
+// 1. VARIABLES GLOBALES
+// ============================================================
 let productos = [];
 let carrito = [];
 let categoriaActual = '';
 let timeoutBusqueda = null;
 let ventaProcesadaId = null;
 let facturaToastTimer = null;
+let isProcessing = false;
 
-// Cargar productos al inicio
-document.addEventListener('DOMContentLoaded', function() {
-    cargarProductos();
-    document.getElementById('scanInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') scanBarcode();
-    });
-});
-
-// Cargar productos desde API
-function cargarProductos() {
-    const sedeId = document.getElementById('sedeId').value;
-    fetch(`/api/productos?sede_id=${sedeId}`)
-        .then(res => res.json())
-        .then(data => {
-            productos = data;
-            renderProductos();
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            document.getElementById('posGrid').innerHTML = '<div class="loading-spinner">❌ Error cargando productos</div>';
-        });
+// ============================================================
+// 2. FUNCIONES DE UTILIDAD
+// ============================================================
+function formatNumber(num) {
+    return new Intl.NumberFormat('es-CO').format(Math.round(num || 0));
 }
 
-// Renderizar productos
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        return m;
+    });
+}
+
+function getTotales() {
+    const subtotal = carrito.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const descPct = parseFloat(document.getElementById('descuentoPct').value) || 0;
+    const descMonto = subtotal * (descPct / 100);
+    const total = subtotal - descMonto;
+    return { subtotal, descPct, descMonto, total };
+}
+
+// ============================================================
+// 3. NOTIFICACIONES (TOAST)
+// ============================================================
+function showNotification(message, type = 'info') {
+    // Usar el toast global si existe
+    if (window.showToast) {
+        window.showToast(message, type);
+        return;
+    }
+    
+    // Fallback local
+    const colors = {
+        success: '#00e676',
+        error: '#ff4081',
+        warning: '#f5c842',
+        info: '#00e5ff'
+    };
+    const textColors = {
+        success: '#000',
+        error: '#fff',
+        warning: '#000',
+        info: '#000'
+    };
+    
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${colors[type] || '#f5c842'};
+        color: ${textColors[type] || '#000'};
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 600;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        max-width: 400px;
+        border: 1px solid rgba(255,255,255,0.1);
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// ============================================================
+// 4. CARGAR PRODUCTOS
+// ============================================================
+function cargarProductos() {
+    const sedeId = document.getElementById('sedeId').value;
+    const grid = document.getElementById('posGrid');
+    grid.innerHTML = '<div class="loading-spinner">⏳ Cargando productos...</div>';
+    
+    fetch(`/api/productos?sede_id=${encodeURIComponent(sedeId)}`, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    })
+    .then(data => {
+        productos = data || [];
+        renderProductos();
+    })
+    .catch(err => {
+        console.error('Error cargando productos:', err);
+        grid.innerHTML = `<div class="loading-spinner" style="color: var(--red);">
+            ❌ Error al cargar productos<br>
+            <small style="font-size: 12px;">${escHtml(err.message)}</small>
+        </div>`;
+        showNotification('Error al cargar productos', 'error');
+    });
+}
+
+// ============================================================
+// 5. RENDERIZAR PRODUCTOS
+// ============================================================
 function renderProductos() {
     const grid = document.getElementById('posGrid');
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     
     let filtered = productos.filter(p => p.activo && p.stock > 0);
     
@@ -631,61 +882,152 @@ function renderProductos() {
     }
     
     if (searchTerm) {
-        filtered = filtered.filter(p => p.nombre.toLowerCase().includes(searchTerm));
+        filtered = filtered.filter(p => 
+            p.nombre.toLowerCase().includes(searchTerm) ||
+            (p.codigo_barras && p.codigo_barras.includes(searchTerm))
+        );
     }
     
     if (filtered.length === 0) {
-        grid.innerHTML = '<div class="loading-spinner">📭 No hay productos disponibles</div>';
+        grid.innerHTML = `<div class="loading-spinner">📭 No hay productos disponibles</div>`;
         return;
     }
     
-    grid.innerHTML = filtered.map(p => `
-        <div class="product-card ${p.stock === 0 ? 'disabled' : ''}" onclick="agregarAlCarrito(${p.id})">
-            <div class="product-emoji">${p.emoji || '📦'}</div>
-            <div class="product-name" title="${p.nombre}">${p.nombre}</div>
-            <div class="product-price">$${formatNumber(p.precio_venta)}</div>
-            <div class="product-stock ${p.stock <= p.stock_minimo ? 'low' : ''}">
-                Stock: ${p.stock} uds
-            </div>
-            ${p.talla ? `<div class="product-stock">Talla: ${p.talla}</div>` : ''}
-        </div>
-    `).join('');
-}
-
-// Buscar por código de barras
-function scanBarcode() {
-    const codigo = document.getElementById('scanInput').value.trim();
-    if (!codigo) return;
+    const cartIds = new Set(carrito.map(c => c.id));
     
-    fetch(`/api/buscar-producto?codigo=${codigo}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.found && data.producto) {
-                agregarAlCarrito(data.producto.id);
-                document.getElementById('scanInput').value = '';
-                showNotification('✅ Producto agregado', 'success');
-            } else {
-                showNotification('❌ Producto no encontrado', 'error');
-            }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            showNotification('Error al buscar producto', 'error');
-        });
+    grid.innerHTML = filtered.map(p => {
+        const inCart = cartIds.has(p.id);
+        const isLowStock = p.stock <= (p.stock_minimo || 3);
+        const stockClass = p.stock <= 0 ? 'out' : isLowStock ? 'low' : '';
+        
+        return `
+            <div class="product-card" onclick="agregarAlCarrito(${p.id})" 
+                 data-id="${p.id}" role="button" tabindex="0"
+                 title="${escHtml(p.nombre)} - Stock: ${p.stock}">
+                <div class="product-badge ${inCart ? 'in-cart' : ''}">
+                    ${inCart ? '✓ En carrito' : p.stock}
+                </div>
+                <div class="product-emoji">${escHtml(p.emoji || '📦')}</div>
+                <div class="product-name" title="${escHtml(p.nombre)}">${escHtml(p.nombre)}</div>
+                <div class="product-price">$${formatNumber(p.precio_venta)}</div>
+                <div class="product-stock ${stockClass}">
+                    ${p.stock <= 0 ? '❌ Sin stock' : `📦 ${p.stock} uds`}
+                    ${p.talla ? ` · ${escHtml(p.talla)}` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
-// Agregar al carrito
+// ============================================================
+// 6. BÚSQUEDA Y FILTROS
+// ============================================================
+function searchProducts() {
+    if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
+    timeoutBusqueda = setTimeout(renderProductos, 300);
+}
+
+function filterCategory(btn, categoria) {
+    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    categoriaActual = categoria;
+    renderProductos();
+}
+
+// Cambio de sede
+document.getElementById('sedeId').addEventListener('change', function() {
+    carrito = [];
+    renderCarrito();
+    calcularTotales();
+    cargarProductos();
+});
+
+// ============================================================
+// 7. ESCANER DE CÓDIGO DE BARRAS
+// ============================================================
+function scanBarcode() {
+    const input = document.getElementById('scanInput');
+    const codigo = input.value.trim();
+    
+    if (!codigo) {
+        showNotification('📷 Escanea o escribe un código de barras', 'warning');
+        input.focus();
+        return;
+    }
+    
+    // Buscar localmente primero (más rápido)
+    const localProduct = productos.find(p => p.codigo_barras === codigo);
+    if (localProduct && localProduct.stock > 0) {
+        agregarAlCarrito(localProduct.id);
+        input.value = '';
+        input.focus();
+        return;
+    }
+    
+    // Si no está localmente, buscar en el servidor
+    fetch(`/api/buscar-producto?codigo=${encodeURIComponent(codigo)}`, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    })
+    .then(data => {
+        if (data.found && data.producto) {
+            // Si el producto no está en la lista local, agregarlo
+            if (!productos.find(p => p.id === data.producto.id)) {
+                productos.push(data.producto);
+            }
+            agregarAlCarrito(data.producto.id);
+            input.value = '';
+            input.focus();
+            showNotification(`✅ ${data.producto.nombre} agregado`, 'success');
+        } else {
+            showNotification(`❌ Código no encontrado: ${codigo}`, 'error');
+            input.select();
+        }
+    })
+    .catch(err => {
+        console.error('Error en escaneo:', err);
+        showNotification('❌ Error al buscar el código', 'error');
+    });
+}
+
+// Enter en el campo de escaneo
+document.getElementById('scanInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        scanBarcode();
+    }
+});
+
+// ============================================================
+// 8. OPERACIONES DEL CARRITO
+// ============================================================
 function agregarAlCarrito(productoId) {
     const producto = productos.find(p => p.id === productoId);
-    if (!producto || producto.stock === 0) {
-        showNotification('❌ Producto sin stock', 'error');
+    if (!producto) {
+        showNotification('❌ Producto no encontrado', 'error');
+        return;
+    }
+    
+    if (producto.stock <= 0) {
+        showNotification(`❌ "${producto.nombre}" sin stock`, 'error');
         return;
     }
     
     const existente = carrito.find(item => item.id === productoId);
+    
     if (existente) {
         if (existente.cantidad + 1 > producto.stock) {
             showNotification(`⚠️ Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
+            // Feedback visual
+            const card = document.querySelector(`.product-card[data-id="${productoId}"]`);
+            if (card) {
+                card.style.borderColor = 'var(--red)';
+                setTimeout(() => card.style.borderColor = '', 1000);
+            }
             return;
         }
         existente.cantidad++;
@@ -703,40 +1045,18 @@ function agregarAlCarrito(productoId) {
     
     renderCarrito();
     calcularTotales();
+    renderProductos(); // Actualizar badges
+    
+    // Feedback visual
+    const card = document.querySelector(`.product-card[data-id="${productoId}"]`);
+    if (card) {
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => card.style.transform = '', 150);
+    }
+    
     showNotification(`➕ ${producto.nombre} agregado`, 'success');
 }
 
-// Renderizar carrito
-function renderCarrito() {
-    const container = document.getElementById('cartItems');
-    const cartCount = document.getElementById('cartCount');
-    
-    if (carrito.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">🛒 Carrito vacío<br><small>Selecciona productos para comenzar</small></div>';
-        cartCount.textContent = '0 items';
-        return;
-    }
-    
-    cartCount.textContent = `${carrito.length} items`;
-    
-    container.innerHTML = carrito.map(item => `
-        <div class="cart-item">
-            <div class="cart-item-info">
-                <div class="cart-item-name">${item.emoji} ${item.nombre}</div>
-                <div class="cart-item-price">$${formatNumber(item.precio)} c/u</div>
-            </div>
-            <div class="cart-item-controls">
-                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, -1)">➖</button>
-                <span class="cart-item-qty">${item.cantidad}</span>
-                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, 1)">➕</button>
-                <button class="btn-icon" onclick="eliminarDelCarrito(${item.id})" style="color: var(--red);">🗑️</button>
-            </div>
-            <div class="cart-item-total">$${formatNumber(item.subtotal)}</div>
-        </div>
-    `).join('');
-}
-
-// Cambiar cantidad
 function cambiarCantidad(productoId, delta) {
     const index = carrito.findIndex(item => item.id === productoId);
     if (index === -1) return;
@@ -759,29 +1079,90 @@ function cambiarCantidad(productoId, delta) {
     
     renderCarrito();
     calcularTotales();
+    renderProductos();
 }
 
-// Eliminar del carrito
 function eliminarDelCarrito(productoId) {
+    const item = carrito.find(c => c.id === productoId);
     carrito = carrito.filter(item => item.id !== productoId);
     renderCarrito();
     calcularTotales();
-    showNotification('🗑️ Producto eliminado', 'info');
+    renderProductos();
+    if (item) showNotification(`🗑️ ${item.nombre} eliminado`, 'info');
 }
 
-// Calcular totales
+// ============================================================
+// 9. RENDERIZAR CARRITO
+// ============================================================
+function renderCarrito() {
+    const container = document.getElementById('cartItems');
+    const cartCount = document.getElementById('cartCount');
+    const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+    
+    cartCount.textContent = `${totalItems} items`;
+    
+    if (carrito.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                🛒 Carrito vacío<br>
+                <small>Selecciona productos para comenzar</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = carrito.map(item => `
+        <div class="cart-item" data-id="${item.id}">
+            <div class="cart-item-info">
+                <div class="cart-item-name">${escHtml(item.emoji)} ${escHtml(item.nombre)}</div>
+                <div class="cart-item-price">$${formatNumber(item.precio)} c/u</div>
+            </div>
+            <div class="cart-item-controls">
+                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, -1)" 
+                        aria-label="Disminuir cantidad" title="Disminuir">➖</button>
+                <span class="cart-item-qty">${item.cantidad}</span>
+                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, 1)" 
+                        aria-label="Aumentar cantidad" title="Aumentar">➕</button>
+                <button class="btn-icon danger" onclick="eliminarDelCarrito(${item.id})" 
+                        aria-label="Eliminar producto" title="Eliminar">✕</button>
+            </div>
+            <div class="cart-item-total">$${formatNumber(item.subtotal)}</div>
+        </div>
+    `).join('');
+}
+
+// ============================================================
+// 10. CALCULAR TOTALES
+// ============================================================
 function calcularTotales() {
-    const subtotal = carrito.reduce((sum, item) => sum + item.subtotal, 0);
-    const descuentoPct = parseFloat(document.getElementById('descuentoPct').value) || 0;
-    const descuentoMonto = subtotal * (descuentoPct / 100);
-    const total = subtotal - descuentoMonto;
+    const { subtotal, descPct, descMonto, total } = getTotales();
     
     document.getElementById('subtotal').textContent = `$${formatNumber(subtotal)}`;
-    document.getElementById('descMonto').textContent = `-$${formatNumber(descuentoMonto)}`;
+    document.getElementById('descMonto').textContent = descMonto > 0 ? `-$${formatNumber(descMonto)}` : '$0';
     document.getElementById('totalDisplay').textContent = `$${formatNumber(total)}`;
 }
 
-// ===== MOSTRAR MODAL DE CONFIRMACIÓN =====
+// ============================================================
+// 11. LIMPIAR CARRITO
+// ============================================================
+function clearCart() {
+    if (carrito.length === 0) {
+        showNotification('🛒 El carrito ya está vacío', 'info');
+        return;
+    }
+    
+    if (!confirm('¿Estás seguro de limpiar todo el carrito?')) return;
+    
+    carrito = [];
+    renderCarrito();
+    calcularTotales();
+    renderProductos();
+    showNotification('🧹 Carrito limpiado', 'info');
+}
+
+// ============================================================
+// 12. MODAL DE CONFIRMACIÓN
+// ============================================================
 function mostrarConfirmacion() {
     if (carrito.length === 0) {
         showNotification('⚠️ El carrito está vacío', 'warning');
@@ -801,27 +1182,25 @@ function mostrarConfirmacion() {
     const resumen = document.getElementById('modalResumen');
     const modalTotal = document.getElementById('modalTotal');
     
-    const subtotal = carrito.reduce((sum, item) => sum + item.subtotal, 0);
-    const descuentoPct = parseFloat(document.getElementById('descuentoPct').value) || 0;
-    const descuentoMonto = subtotal * (descuentoPct / 100);
-    const total = subtotal - descuentoMonto;
+    const { subtotal, descPct, descMonto, total } = getTotales();
     const metodoPago = document.getElementById('metodoPago');
     const metodoLabel = metodoPago ? metodoPago.options[metodoPago.selectedIndex]?.text || 'Efectivo' : 'Efectivo';
-    const clienteNombre = document.getElementById('clienteNombre').value || 'Cliente general';
+    const clienteNombre = document.getElementById('clienteNombre').value.trim() || 'Cliente general';
+    const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
     
     // Generar resumen
     let html = `
         <div class="modal-summary-item">
             <span class="label">👤 Cliente</span>
-            <span class="value">${clienteNombre}</span>
+            <span class="value">${escHtml(clienteNombre)}</span>
         </div>
         <div class="modal-summary-item">
             <span class="label">💳 Método de Pago</span>
-            <span class="value">${metodoLabel}</span>
+            <span class="value">${escHtml(metodoLabel)}</span>
         </div>
         <div class="modal-summary-item">
             <span class="label">📦 Items</span>
-            <span class="value">${carrito.length} productos</span>
+            <span class="value">${totalItems} productos (${carrito.length} tipos)</span>
         </div>
         <hr class="modal-divider">
         <div style="font-weight: 600; margin-bottom: 8px; color: var(--gold);">📋 Detalle:</div>
@@ -830,7 +1209,7 @@ function mostrarConfirmacion() {
     carrito.forEach(item => {
         html += `
             <div class="modal-summary-item">
-                <span class="label">${item.emoji} ${item.nombre} × ${item.cantidad}</span>
+                <span class="label">${escHtml(item.emoji)} ${escHtml(item.nombre)} × ${item.cantidad}</span>
                 <span class="value">$${formatNumber(item.subtotal)}</span>
             </div>
         `;
@@ -843,8 +1222,8 @@ function mostrarConfirmacion() {
             <span class="value">$${formatNumber(subtotal)}</span>
         </div>
         <div class="modal-summary-item">
-            <span class="label">Descuento (${descuentoPct}%)</span>
-            <span class="value" style="color: var(--red);">-$${formatNumber(descuentoMonto)}</span>
+            <span class="label">Descuento (${descPct}%)</span>
+            <span class="value" style="color: var(--red);">-$${formatNumber(descMonto)}</span>
         </div>
     `;
     
@@ -855,23 +1234,41 @@ function mostrarConfirmacion() {
     document.body.style.overflow = 'hidden';
 }
 
-// ===== CERRAR MODAL =====
 function cerrarModal() {
     document.getElementById('confirmModal').classList.remove('active');
     document.body.style.overflow = '';
 }
 
-// ===== PROCESAR VENTA (desde el modal) =====
+// Cerrar modal con Escape o click fuera
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') cerrarModal();
+});
+
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModal();
+});
+
+// ============================================================
+// 13. PROCESAR VENTA
+// ============================================================
 function procesarVenta() {
+    if (isProcessing) return;
     if (carrito.length === 0) {
         showNotification('⚠️ El carrito está vacío', 'warning');
         cerrarModal();
         return;
     }
     
+    isProcessing = true;
+    const btnConfirmar = document.getElementById('btnConfirmarVenta');
     const btnProcesar = document.getElementById('btnProcesar');
+    
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = '⏳ Procesando...';
     btnProcesar.disabled = true;
     btnProcesar.textContent = '⏳ Procesando...';
+    
+    const { descPct } = getTotales();
     
     const ventaData = {
         items: carrito.map(item => ({
@@ -879,20 +1276,29 @@ function procesarVenta() {
             cantidad: item.cantidad,
             precio_unitario: item.precio
         })),
-        cliente_nombre: document.getElementById('clienteNombre').value,
-        cliente_doc: document.getElementById('clienteDoc').value,
+        cliente_nombre: document.getElementById('clienteNombre').value.trim() || '',
+        cliente_doc: document.getElementById('clienteDoc').value.trim() || '',
         metodo_pago: document.getElementById('metodoPago').value,
-        descuento_pct: parseFloat(document.getElementById('descuentoPct').value) || 0,
-        notas: document.getElementById('notas').value,
-        sede_id: parseInt(document.getElementById('sedeId').value)
+        descuento_pct: descPct,
+        notas: document.getElementById('notas').value.trim() || '',
+        sede_id: parseInt(document.getElementById('sedeId').value) || 1
     };
     
+    // Enviar al servidor
     fetch('/ventas/procesar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin',
         body: JSON.stringify(ventaData)
     })
-    .then(res => res.json())
+    .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+    })
     .then(data => {
         cerrarModal();
         
@@ -900,30 +1306,45 @@ function procesarVenta() {
             ventaProcesadaId = data.venta_id;
             showNotification(`✅ Venta #${data.numero_factura} procesada con éxito!`, 'success');
             
-            // Mostrar toast con botón de descarga
+            // Mostrar toast con botones de descarga
             mostrarToastFactura(data.venta_id, data.numero_factura, data.total);
             
-            clearCart();
-            cargarProductos(); // Recargar productos para actualizar stock
+            // Limpiar carrito y recargar productos
+            carrito = [];
+            renderCarrito();
+            calcularTotales();
+            cargarProductos();
+            
+            // Limpiar campos
+            document.getElementById('clienteNombre').value = '';
+            document.getElementById('clienteDoc').value = '';
+            document.getElementById('notas').value = '';
+            document.getElementById('descuentoPct').value = '0';
         } else {
-            showNotification(`❌ Error: ${data.error}`, 'error');
+            showNotification(`❌ ${data.error || 'Error procesando la venta'}`, 'error');
         }
     })
     .catch(err => {
-        console.error('Error:', err);
+        console.error('Error procesando venta:', err);
         cerrarModal();
-        showNotification('❌ Error al procesar la venta', 'error');
+        showNotification(`❌ ${err.message || 'Error al procesar la venta'}`, 'error');
     })
     .finally(() => {
+        isProcessing = false;
+        btnConfirmar.disabled = false;
+        btnConfirmar.textContent = '✅ Confirmar Venta';
         btnProcesar.disabled = false;
         btnProcesar.textContent = '✓ PROCESAR VENTA';
     });
 }
 
-// ===== MOSTRAR TOAST DE FACTURA CON BOTÓN DE DESCARGA =====
+// ============================================================
+// 14. TOAST DE FACTURA
+// ============================================================
 function mostrarToastFactura(ventaId, numeroFactura, total) {
-    // Limpiar toast anterior si existe
     const container = document.getElementById('facturaToastContainer');
+    
+    // Limpiar toast anterior
     if (facturaToastTimer) {
         clearTimeout(facturaToastTimer);
         facturaToastTimer = null;
@@ -932,16 +1353,18 @@ function mostrarToastFactura(ventaId, numeroFactura, total) {
     
     const toast = document.createElement('div');
     toast.className = 'factura-toast';
+    toast.style.animation = 'slideUp 0.3s ease';
     toast.innerHTML = `
         <div class="icon">🧾</div>
         <div class="title">¡Venta Completada!</div>
-        <div class="subtitle">Factura #${numeroFactura} · ${formatNumber(total)}</div>
+        <div class="subtitle">Factura #${numeroFactura} · $${formatNumber(total)}</div>
         <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px;">
             <button class="btn-download" onclick="descargarFactura(${ventaId})">
-                📥 Descargar Factura
+                📥 Descargar
             </button>
-            <button class="btn-download" onclick="verFactura(${ventaId})" style="background: linear-gradient(135deg, var(--cyan), #0097a7); color: #000;">
-                👁️ Ver Factura
+            <button class="btn-download" onclick="verFactura(${ventaId})" 
+                    style="background: linear-gradient(135deg, var(--cyan), #0097a7); color: #000;">
+                👁️ Ver
             </button>
             <button class="btn-close-toast" onclick="cerrarToastFactura()">✕ Cerrar</button>
         </div>
@@ -949,33 +1372,25 @@ function mostrarToastFactura(ventaId, numeroFactura, total) {
     
     container.appendChild(toast);
     
-    // Auto-cerrar después de 15 segundos
-    facturaToastTimer = setTimeout(() => {
-        cerrarToastFactura();
-    }, 15000);
+    // Auto-cerrar después de 20 segundos
+    facturaToastTimer = setTimeout(cerrarToastFactura, 20000);
 }
 
-// ===== DESCARGAR FACTURA =====
 function descargarFactura(ventaId) {
-    // Opción 1: Abrir en nueva pestaña (el navegador permite guardar como PDF)
     window.open(`/ventas/${ventaId}/factura`, '_blank');
-    showNotification('📥 Factura abierta para descargar', 'success');
+    showNotification('📥 Abriendo factura...', 'success');
 }
 
-// ===== VER FACTURA =====
 function verFactura(ventaId) {
-    window.open(`/ventas/${ventaId}/factura`, '_blank', 'width=460,height=720,scrollbars=yes');
+    window.open(`/ventas/${ventaId}/factura`, '_blank', 'width=480,height=720,scrollbars=yes');
 }
 
-// ===== CERRAR TOAST DE FACTURA =====
 function cerrarToastFactura() {
     const container = document.getElementById('facturaToastContainer');
     const toast = container.querySelector('.factura-toast');
     if (toast) {
-        toast.style.animation = 'modalIn 0.3s ease reverse';
-        setTimeout(() => {
-            container.innerHTML = '';
-        }, 300);
+        toast.style.animation = 'slideUp 0.3s ease reverse';
+        setTimeout(() => container.innerHTML = '', 300);
     }
     if (facturaToastTimer) {
         clearTimeout(facturaToastTimer);
@@ -983,92 +1398,81 @@ function cerrarToastFactura() {
     }
 }
 
-// ===== LIMPIAR CARRITO =====
-function clearCart() {
-    if (carrito.length === 0) return;
-    if (confirm('¿Limpiar todo el carrito?')) {
-        carrito = [];
-        renderCarrito();
-        calcularTotales();
-        showNotification('🧹 Carrito limpiado', 'info');
-    }
-}
-
-// Filtrar por categoría
-function filterCategory(btn, categoria) {
-    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    categoriaActual = categoria;
-    renderProductos();
-}
-
-// Buscar productos
-function searchProducts() {
-    if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
-    timeoutBusqueda = setTimeout(() => {
-        renderProductos();
-    }, 300);
-}
-
-// Cambiar sede
-document.getElementById('sedeId').addEventListener('change', function() {
-    cargarProductos();
-});
-
-// Formatear números
-function formatNumber(num) {
-    return new Intl.NumberFormat('es-CO').format(Math.round(num));
-}
-
-// Mostrar notificación
-function showNotification(message, type) {
-    // Usar el toast global si existe
-    if (window.showToast) {
-        window.showToast(message, type);
-        return;
-    }
-    // Fallback
-    const notification = document.createElement('div');
-    const colors = {
-        success: '#00e676',
-        error: '#ff4081',
-        warning: '#f5c842',
-        info: '#00e5ff'
-    };
-    notification.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        padding: 12px 20px;
-        background: ${colors[type] || '#f5c842'};
-        color: ${type === 'success' ? '#000' : '#fff'};
-        border-radius: 8px;
-        z-index: 10000;
-        font-weight: 600;
-        animation: slideIn 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Cerrar modal con Escape
+// ============================================================
+// 15. ATALOS DE TECLADO
+// ============================================================
 document.addEventListener('keydown', function(e) {
+    // Ctrl+F: focus en búsqueda
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput');
+        searchInput.focus();
+        searchInput.select();
+    }
+    
+    // F1: focus en escáner
+    if (e.key === 'F1') {
+        e.preventDefault();
+        const scanInput = document.getElementById('scanInput');
+        scanInput.focus();
+        scanInput.select();
+    }
+    
+    // Ctrl+Enter: procesar venta
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (carrito.length > 0) {
+            mostrarConfirmacion();
+        }
+    }
+    
+    // Escape en modales
     if (e.key === 'Escape') {
         cerrarModal();
+        cerrarToastFactura();
     }
 });
 
-// Cerrar modal clickeando fuera
-document.getElementById('confirmModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        cerrarModal();
-    }
+// ============================================================
+// 16. INICIALIZACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    cargarProductos();
+    calcularTotales();
+    
+    // Focus en el escáner después de cargar
+    setTimeout(() => {
+        document.getElementById('scanInput').focus();
+    }, 500);
+    
+    // Actualizar totales al cambiar descuento o método de pago
+    document.getElementById('metodoPago').addEventListener('change', function() {
+        // Solo actualizar la UI si hay items
+        if (carrito.length > 0) {
+            calcularTotales();
+        }
+    });
 });
+
+// Exponer funciones globales
+window.cargarProductos = cargarProductos;
+window.renderProductos = renderProductos;
+window.filterCategory = filterCategory;
+window.searchProducts = searchProducts;
+window.scanBarcode = scanBarcode;
+window.agregarAlCarrito = agregarAlCarrito;
+window.cambiarCantidad = cambiarCantidad;
+window.eliminarDelCarrito = eliminarDelCarrito;
+window.clearCart = clearCart;
+window.calcularTotales = calcularTotales;
+window.mostrarConfirmacion = mostrarConfirmacion;
+window.cerrarModal = cerrarModal;
+window.procesarVenta = procesarVenta;
+window.descargarFactura = descargarFactura;
+window.verFactura = verFactura;
+window.cerrarToastFactura = cerrarToastFactura;
+window.showNotification = showNotification;
+window.formatNumber = formatNumber;
+
 </script>
 {% endblock %}
