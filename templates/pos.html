@@ -4,9 +4,6 @@
 
 {% block content %}
 <style>
-  /* ============================================================
-     ESTILOS POS - TEMA DINÁMICO
-     ============================================================ */
   .pos-layout {
     display: flex;
     gap: 20px;
@@ -31,7 +28,6 @@
     position: sticky;
     top: 20px;
     max-height: calc(100vh - 100px);
-    transition: background 0.3s, border-color 0.3s;
   }
   
   .cart-header {
@@ -42,7 +38,6 @@
     align-items: center;
     background: linear-gradient(135deg, rgba(212,160,23,0.1), transparent);
     border-radius: 16px 16px 0 0;
-    flex-shrink: 0;
   }
   
   .cart-header-title {
@@ -56,7 +51,6 @@
     overflow-y: auto;
     padding: 12px;
     max-height: 400px;
-    min-height: 100px;
   }
   
   .cart-item {
@@ -69,12 +63,6 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     transition: all 0.2s;
-    animation: slideIn 0.2s ease;
-  }
-  
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
   }
   
   .cart-item:hover {
@@ -84,15 +72,11 @@
   
   .cart-item-info {
     flex: 1;
-    min-width: 0;
   }
   
   .cart-item-name {
     font-weight: 600;
     font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   
   .cart-item-price {
@@ -105,15 +89,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-shrink: 0;
   }
   
   .cart-item-qty {
-    min-width: 30px;
+    width: 50px;
     text-align: center;
     font-weight: 700;
     color: var(--cyan);
-    font-family: 'Orbitron', monospace;
   }
   
   .cart-item-total {
@@ -122,7 +104,6 @@
     font-weight: 700;
     color: var(--gold2);
     font-family: 'Orbitron', monospace;
-    flex-shrink: 0;
   }
   
   .cart-footer {
@@ -130,7 +111,6 @@
     border-top: 1px solid var(--border);
     background: rgba(0,0,0,0.2);
     border-radius: 0 0 16px 16px;
-    flex-shrink: 0;
   }
   
   .total-row {
@@ -173,24 +153,31 @@
     position: relative;
   }
   
-  .product-card:hover {
+  .product-card:hover:not(.disabled) {
     border-color: var(--gold);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(212,160,23,0.2);
   }
   
-  .product-card:active {
-    transform: scale(0.95);
-  }
-  
   .product-card.disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
   }
   
   .product-card.disabled:hover {
     transform: none;
     border-color: var(--border);
+  }
+  
+  .product-card.inactive {
+    opacity: 0.5;
+    border-color: var(--red);
+    background: rgba(255,23,68,0.05);
+  }
+  
+  .product-card.inactive:hover {
+    transform: none;
+    border-color: var(--red);
   }
   
   .product-emoji {
@@ -222,19 +209,17 @@
   
   .product-stock.low {
     color: var(--orange);
-    font-weight: 700;
   }
   
   .product-stock.out {
     color: var(--red);
-    font-weight: 700;
   }
   
   .product-badge {
     position: absolute;
     top: 8px;
     right: 8px;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 10px;
@@ -243,7 +228,19 @@
     color: var(--text-muted);
   }
   
-  .product-badge.in-cart {
+  .product-badge.sin-stock {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+  }
+  
+  .product-badge.inactivo {
+    background: var(--orange);
+    color: #000;
+    border-color: var(--orange);
+  }
+  
+  .product-badge.en-carrito {
     background: var(--gold);
     color: #000;
     border-color: var(--gold);
@@ -292,7 +289,6 @@
     cursor: pointer;
     transition: all 0.2s;
     color: var(--text);
-    font-size: 14px;
   }
   
   .btn-icon:hover {
@@ -312,253 +308,38 @@
     padding: 40px;
     color: var(--text-muted);
   }
-
-  /* ===== MODAL DE CONFIRMACIÓN ===== */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
-  }
   
-  .modal-overlay.active {
+  .toggle-inactivos {
     display: flex;
-  }
-  
-  .modal-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    max-width: 600px;
-    width: 95%;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 30px;
-    animation: modalIn 0.3s ease;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  }
-  
-  @keyframes modalIn {
-    from { transform: scale(0.9) translateY(20px); opacity: 0; }
-    to { transform: scale(1) translateY(0); opacity: 1; }
-  }
-  
-  .modal-title {
-    font-family: 'Orbitron', monospace;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--gold);
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  .modal-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 16px 0;
-  }
-  
-  .modal-summary-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    font-size: 14px;
-  }
-  
-  .modal-summary-item .label {
-    color: var(--text-muted);
-  }
-  
-  .modal-summary-item .value {
-    font-weight: 600;
-    color: var(--text);
-  }
-  
-  .modal-summary-item.total {
-    font-size: 20px;
-    font-weight: 700;
-    border-top: 2px solid var(--gold);
-    padding-top: 14px;
-    margin-top: 10px;
-  }
-  
-  .modal-summary-item.total .value {
-    color: var(--gold2);
-    font-size: 24px;
-  }
-  
-  .modal-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 24px;
-  }
-  
-  .modal-actions .btn {
-    flex: 1;
-    padding: 12px;
-    font-size: 14px;
-    justify-content: center;
-  }
-  
-  .modal-actions .btn-cancel {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-  
-  .modal-actions .btn-cancel:hover {
-    border-color: var(--red);
-    color: var(--red);
-  }
-  
-  .modal-actions .btn-confirm {
-    background: linear-gradient(135deg, var(--gold), var(--gold2));
-    color: #000;
-  }
-  
-  .modal-actions .btn-confirm:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-  }
-  
-  .modal-actions .btn-confirm:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  /* ===== TOAST DE FACTURA ===== */
-  .factura-toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-card);
-    border: 2px solid var(--green);
-    border-radius: 16px;
-    padding: 20px 30px;
-    z-index: 10001;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    animation: toastIn 0.3s ease;
-    text-align: center;
-    max-width: 420px;
-    width: 90%;
-  }
-  
-  .factura-toast .icon {
-    font-size: 48px;
-    margin-bottom: 8px;
-  }
-  
-  .factura-toast .title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--gold);
-  }
-  
-  .factura-toast .subtitle {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin: 4px 0 12px;
-  }
-  
-  .factura-toast .btn-download {
-    display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 24px;
-    border-radius: 10px;
-    border: none;
-    background: linear-gradient(135deg, var(--green), #00c853);
-    color: #000;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin: 4px;
-  }
-  
-  .factura-toast .btn-download:hover {
-    transform: scale(1.03);
-    filter: brightness(1.1);
-  }
-  
-  .factura-toast .btn-close-toast {
-    background: transparent;
-    border: 1px solid var(--border);
+    font-size: 12px;
     color: var(--text-muted);
-    padding: 10px 20px;
-    border-radius: 10px;
     cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s;
-    margin: 4px;
   }
   
-  .factura-toast .btn-close-toast:hover {
-    border-color: var(--text);
-    color: var(--text);
+  .toggle-inactivos input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--gold);
+    cursor: pointer;
   }
   
-  @keyframes slideUp {
-    from { transform: translateX(-50%) translateY(30px); opacity: 0; }
-    to { transform: translateX(-50%) translateY(0); opacity: 1; }
-  }
-
-  /* ===== RESPONSIVE ===== */
-  @media (max-width: 1024px) {
+  @media (max-width: 900px) {
     .pos-layout {
-      gap: 12px;
+      flex-direction: column;
+    }
+    .cart-panel {
+      position: static;
     }
     .pos-grid {
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     }
   }
   
-  @media (max-width: 768px) {
-    .pos-layout {
-      flex-direction: column;
-    }
-    .cart-panel {
-      position: static;
-      max-height: 500px;
-    }
-    .pos-grid {
-      max-height: 350px;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    }
-    .modal-box {
-      padding: 20px;
-      margin: 10px;
-    }
-    .factura-toast {
-      bottom: 10px;
-      padding: 16px;
-      width: 95%;
-    }
-    .cart-item {
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .cart-item-total {
-      min-width: 60px;
-      font-size: 12px;
-    }
-    .modal-actions {
-      flex-direction: column;
-    }
-  }
-  
   @media (max-width: 480px) {
     .pos-grid {
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       gap: 8px;
     }
     .product-card {
@@ -576,24 +357,16 @@
   }
 </style>
 
-<!-- ============================================================
-   LAYOUT PRINCIPAL
-   ============================================================ -->
 <div class="pos-layout">
-  
   <!-- Panel Izquierdo - Productos -->
   <div class="pos-left">
     <div class="card" style="padding: 16px;">
-      <!-- Barra de búsqueda y escáner -->
       <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
         <div class="scan-bar" style="flex: 1; min-width: 220px;">
           <input type="text" id="scanInput" class="form-control" 
                  placeholder="📷 Escanear código de barras..." 
-                 autocomplete="off" style="flex: 1;" 
-                 aria-label="Escanear código de barras">
-          <button class="btn btn-cyan" onclick="scanBarcode()" style="padding: 8px 16px; white-space: nowrap;">
-            🔍 Buscar
-          </button>
+                 autocomplete="off" style="flex: 1;">
+          <button class="btn btn-cyan" onclick="scanBarcode()" style="padding: 8px 16px;">🔍 Buscar</button>
         </div>
         <select id="sedeId" class="form-control" style="max-width: 180px;">
           {% for sede in sedes %}
@@ -602,25 +375,34 @@
         </select>
       </div>
       
-      <!-- Filtros de categoría -->
-      <div class="filter-row">
-        <button class="filter-chip active" onclick="filterCategory(this, '')">📦 Todos</button>
-        {% for cat in categorias %}
-          <button class="filter-chip" onclick="filterCategory(this, '{{ cat.nombre }}')">
-            {{ cat.emoji }} {{ cat.nombre }}
-          </button>
-        {% endfor %}
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+        <div class="filter-row" style="margin-bottom: 0; flex: 1;">
+          <button class="filter-chip active" onclick="filterCategory(this, '')">📦 Todos</button>
+          {% for cat in categorias %}
+            <button class="filter-chip" onclick="filterCategory(this, '{{ cat.nombre }}')">
+              {{ cat.emoji }} {{ cat.nombre }}
+            </button>
+          {% endfor %}
+        </div>
+        
+        <div class="toggle-inactivos">
+          <input type="checkbox" id="mostrarInactivos" onchange="renderProductos()">
+          <label for="mostrarInactivos">Mostrar inactivos</label>
+        </div>
       </div>
       
-      <!-- Buscador por nombre -->
       <input type="text" id="searchInput" class="form-control" 
-             placeholder="🔍 Buscar producto por nombre..." 
-             onkeyup="searchProducts()" 
-             aria-label="Buscar productos" 
-             style="margin-bottom: 16px;">
+             placeholder="🔍 Buscar producto por nombre o código..." 
+             onkeyup="searchProducts()" style="margin-bottom: 12px;">
+      
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <button onclick="recargarProductos()" class="btn btn-cyan btn-sm" style="padding: 4px 12px; font-size: 12px;">
+          🔄 Actualizar
+        </button>
+        <span style="font-size: 11px; color: var(--text-muted);" id="productosCount">0 productos</span>
+      </div>
     </div>
     
-    <!-- Grid de productos -->
     <div class="pos-grid" id="posGrid">
       <div class="loading-spinner">⏳ Cargando productos...</div>
     </div>
@@ -629,12 +411,10 @@
   <!-- Panel Derecho - Carrito -->
   <div class="cart-panel">
     <div class="cart-header">
-      <span class="cart-header-title">🧾 CARRITO</span>
+      <span class="cart-header-title">🧾 CARRITO DE COMPRAS</span>
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 12px; color: var(--text-muted);" id="cartCount">0 items</span>
-        <button class="btn-icon danger" onclick="clearCart()" title="Limpiar carrito" aria-label="Limpiar carrito">
-          🗑️
-        </button>
+        <button class="btn-icon danger" onclick="clearCart()" title="Limpiar carrito">🗑️</button>
       </div>
     </div>
     
@@ -646,7 +426,6 @@
     </div>
     
     <div class="cart-footer">
-      <!-- Datos del cliente -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
         <div>
           <label class="form-label">👤 Cliente</label>
@@ -671,8 +450,7 @@
         </div>
         <div>
           <label class="form-label">🏷️ Descuento %</label>
-          <input type="number" id="descuentoPct" class="form-control" value="0" min="0" max="100" step="1" 
-                 oninput="calcularTotales()" aria-label="Porcentaje de descuento">
+          <input type="number" id="descuentoPct" class="form-control" value="0" min="0" max="100" step="1" oninput="calcularTotales()">
         </div>
       </div>
       
@@ -683,7 +461,6 @@
       
       <hr style="border-color: var(--border); margin: 12px 0;">
       
-      <!-- Totales -->
       <div class="total-row">
         <span class="lbl">Subtotal</span>
         <span id="subtotal" style="font-family: 'Orbitron', monospace;">$0</span>
@@ -697,10 +474,8 @@
         <span id="totalDisplay" style="color: var(--gold);">$0</span>
       </div>
       
-      <!-- Botones de acción -->
       <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
-        <button id="btnProcesar" class="btn btn-gold btn-full" onclick="mostrarConfirmacion()" 
-                style="padding: 12px; font-size: 16px;" aria-label="Procesar venta">
+        <button id="btnProcesar" class="btn btn-gold btn-full" onclick="procesarVenta()" style="padding: 12px; font-size: 16px;">
           ✓ PROCESAR VENTA
         </button>
         <button class="btn btn-outline btn-full" onclick="clearCart()" style="padding: 10px;">
@@ -711,95 +486,448 @@
   </div>
 </div>
 
-<!-- ============================================================
-   MODAL DE CONFIRMACIÓN
-   ============================================================ -->
-<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-  <div class="modal-box">
-    <div class="modal-title" id="modalTitle">📋 CONFIRMAR VENTA</div>
-    <p style="text-align: center; color: var(--text-muted); margin-bottom: 16px;">
-      Revisa los detalles antes de procesar
-    </p>
-    
-    <div id="modalResumen" style="margin-bottom: 16px;">
-      <!-- Se llena dinámicamente -->
-    </div>
-    
-    <hr class="modal-divider">
-    
-    <div class="modal-summary-item total">
-      <span class="label">TOTAL A PAGAR</span>
-      <span class="value" id="modalTotal">$0</span>
-    </div>
-    
-    <div class="modal-actions">
-      <button class="btn btn-cancel" onclick="cerrarModal()" aria-label="Cancelar">❌ Cancelar</button>
-      <button class="btn btn-confirm" id="btnConfirmarVenta" onclick="procesarVenta()" aria-label="Confirmar venta">
-        ✅ Confirmar Venta
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================
-   CONTENEDOR PARA TOAST DE FACTURA
-   ============================================================ -->
-<div id="facturaToastContainer"></div>
-
-<!-- ============================================================
-   SCRIPTS - CÓDIGO COMPLETO Y OPTIMIZADO
-   ============================================================ -->
 <script>
-'use strict';
+// ============================================================
+// POS COMPLETO - VERSIÓN CORREGIDA
+// ============================================================
 
-// ============================================================
-// 1. VARIABLES GLOBALES
-// ============================================================
+// Variables globales
 let productos = [];
 let carrito = [];
 let categoriaActual = '';
 let timeoutBusqueda = null;
-let ventaProcesadaId = null;
-let facturaToastTimer = null;
-let isProcessing = false;
+let mostrandoInactivos = false;
 
 // ============================================================
-// 2. FUNCIONES DE UTILIDAD
+// INICIALIZACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    cargarProductos();
+    document.getElementById('scanInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') scanBarcode();
+    });
+    document.getElementById('mostrarInactivos').addEventListener('change', function() {
+        mostrandoInactivos = this.checked;
+        renderProductos();
+    });
+});
+
+// ============================================================
+// CARGAR PRODUCTOS
+// ============================================================
+function cargarProductos() {
+    const sedeId = document.getElementById('sedeId').value;
+    const grid = document.getElementById('posGrid');
+    grid.innerHTML = '<div class="loading-spinner">⏳ Cargando productos...</div>';
+    
+    fetch(`/api/productos?sede_id=${sedeId}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Error al cargar productos');
+            return res.json();
+        })
+        .then(data => {
+            productos = data || [];
+            renderProductos();
+            console.log('✅ Productos cargados:', productos.length);
+            if (productos.length > 0) {
+                console.log('📦 Ejemplo de producto:', productos[0]);
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            grid.innerHTML = `<div class="loading-spinner">❌ Error: ${err.message}</div>`;
+            showNotification('Error cargando productos', 'error');
+        });
+}
+
+// ============================================================
+// RENDERIZAR PRODUCTOS - MUESTRA TODOS
+// ============================================================
+function renderProductos() {
+    const grid = document.getElementById('posGrid');
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    const countEl = document.getElementById('productosCount');
+    
+    // Filtrar productos
+    let filtered = [...productos];
+    
+    // Mostrar inactivos SOLO si el checkbox está marcado
+    if (!mostrandoInactivos) {
+        filtered = filtered.filter(p => p.activo !== false);
+    }
+    
+    // Filtrar por categoría
+    if (categoriaActual) {
+        filtered = filtered.filter(p => p.categoria === categoriaActual);
+    }
+    
+    // Buscar por nombre o código de barras
+    if (searchTerm) {
+        filtered = filtered.filter(p => 
+            p.nombre.toLowerCase().includes(searchTerm) ||
+            (p.codigo_barras && p.codigo_barras.includes(searchTerm)) ||
+            (p.codigo && p.codigo.includes(searchTerm))
+        );
+    }
+    
+    countEl.textContent = `${filtered.length} productos`;
+    
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div class="loading-spinner" style="grid-column: 1/-1;">
+                📭 No hay productos disponibles<br>
+                <small style="font-size: 12px;">
+                    ${mostrandoInactivos ? 'Todos los productos están inactivos o sin stock' : 'Prueba a mostrar inactivos'}
+                </small>
+            </div>
+        `;
+        return;
+    }
+    
+    // IDs de productos en carrito
+    const cartIds = new Set(carrito.map(c => c.id));
+    
+    grid.innerHTML = filtered.map(p => {
+        const inCart = cartIds.has(p.id);
+        const sinStock = p.stock <= 0;
+        const inactivo = p.activo === false;
+        const isLowStock = p.stock > 0 && p.stock <= (p.stock_minimo || 3);
+        
+        // Determinar clases CSS
+        let classes = 'product-card';
+        if (sinStock || inactivo) classes += ' disabled';
+        if (inactivo) classes += ' inactive';
+        
+        // Determinar badge
+        let badge = '';
+        if (inactivo) {
+            badge = `<div class="product-badge inactivo">⛔ Inactivo</div>`;
+        } else if (sinStock) {
+            badge = `<div class="product-badge sin-stock">❌ Sin stock</div>`;
+        } else if (inCart) {
+            badge = `<div class="product-badge en-carrito">✓ En carrito</div>`;
+        } else {
+            badge = `<div class="product-badge">${p.stock}</div>`;
+        }
+        
+        const precioMostrar = p.precio_venta || p.precio || 0;
+        
+        return `
+            <div class="${classes}" onclick="agregarAlCarrito(${p.id})" 
+                 data-id="${p.id}" title="${p.nombre}">
+                ${badge}
+                <div class="product-emoji">${p.emoji || '📦'}</div>
+                <div class="product-name">${p.nombre}</div>
+                <div class="product-price">$${formatNumber(precioMostrar)}</div>
+                <div class="product-stock ${isLowStock ? 'low' : ''} ${sinStock ? 'out' : ''}">
+                    ${sinStock ? '❌ Sin stock' : `📦 ${p.stock} uds`}
+                    ${p.talla ? ` · ${p.talla}` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================================
+// RECARGAR PRODUCTOS MANUALMENTE
+// ============================================================
+function recargarProductos() {
+    cargarProductos();
+    showNotification('🔄 Productos recargados', 'info');
+}
+
+// ============================================================
+// BUSCAR POR CÓDIGO DE BARRAS
+// ============================================================
+function scanBarcode() {
+    const codigo = document.getElementById('scanInput').value.trim();
+    if (!codigo) {
+        showNotification('📷 Escanea o escribe un código de barras', 'info');
+        return;
+    }
+    
+    // Buscar localmente primero
+    const local = productos.find(p => p.codigo_barras === codigo);
+    if (local) {
+        agregarAlCarrito(local.id);
+        document.getElementById('scanInput').value = '';
+        return;
+    }
+    
+    // Buscar en servidor
+    fetch(`/api/buscar-producto?codigo=${encodeURIComponent(codigo)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.found && data.producto) {
+                // Agregar a la lista local si no existe
+                if (!productos.find(p => p.id === data.producto.id)) {
+                    productos.push(data.producto);
+                }
+                agregarAlCarrito(data.producto.id);
+                document.getElementById('scanInput').value = '';
+                showNotification('✅ Producto agregado', 'success');
+                renderProductos();
+            } else {
+                showNotification('❌ Código no encontrado', 'error');
+                document.getElementById('scanInput').select();
+            }
+        })
+        .catch(err => {
+            console.error('Error en escaneo:', err);
+            showNotification('❌ Error al buscar', 'error');
+        });
+}
+
+// ============================================================
+// AGREGAR AL CARRITO
+// ============================================================
+function agregarAlCarrito(productoId) {
+    const producto = productos.find(p => p.id === productoId);
+    if (!producto) {
+        showNotification('❌ Producto no encontrado', 'error');
+        return;
+    }
+    
+    // Verificar si está activo
+    if (producto.activo === false) {
+        showNotification(`⛔ "${producto.nombre}" está inactivo`, 'error');
+        return;
+    }
+    
+    // Verificar stock
+    if (producto.stock <= 0) {
+        showNotification(`❌ "${producto.nombre}" sin stock`, 'error');
+        return;
+    }
+    
+    const existente = carrito.find(item => item.id === productoId);
+    if (existente) {
+        if (existente.cantidad + 1 > producto.stock) {
+            showNotification(`⚠️ Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
+            return;
+        }
+        existente.cantidad++;
+        existente.subtotal = existente.cantidad * existente.precio;
+    } else {
+        carrito.push({
+            id: producto.id,
+            nombre: producto.nombre,
+            precio: producto.precio_venta || producto.precio || 0,
+            cantidad: 1,
+            subtotal: producto.precio_venta || producto.precio || 0,
+            emoji: producto.emoji || '📦'
+        });
+    }
+    
+    renderCarrito();
+    calcularTotales();
+    renderProductos();
+    showNotification(`➕ ${producto.nombre} agregado`, 'success');
+}
+
+// ============================================================
+// RENDERIZAR CARRITO
+// ============================================================
+function renderCarrito() {
+    const container = document.getElementById('cartItems');
+    const cartCount = document.getElementById('cartCount');
+    const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+    
+    cartCount.textContent = `${totalItems} items`;
+    
+    if (carrito.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                🛒 Carrito vacío<br>
+                <small>Selecciona productos para comenzar</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = carrito.map(item => `
+        <div class="cart-item">
+            <div class="cart-item-info">
+                <div class="cart-item-name">${item.emoji} ${item.nombre}</div>
+                <div class="cart-item-price">$${formatNumber(item.precio)} c/u</div>
+            </div>
+            <div class="cart-item-controls">
+                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, -1)">➖</button>
+                <span class="cart-item-qty">${item.cantidad}</span>
+                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, 1)">➕</button>
+                <button class="btn-icon danger" onclick="eliminarDelCarrito(${item.id})">🗑️</button>
+            </div>
+            <div class="cart-item-total">$${formatNumber(item.subtotal)}</div>
+        </div>
+    `).join('');
+}
+
+// ============================================================
+// CAMBIAR CANTIDAD
+// ============================================================
+function cambiarCantidad(productoId, delta) {
+    const index = carrito.findIndex(item => item.id === productoId);
+    if (index === -1) return;
+    
+    const producto = productos.find(p => p.id === productoId);
+    const nuevaCantidad = carrito[index].cantidad + delta;
+    
+    if (nuevaCantidad <= 0) {
+        eliminarDelCarrito(productoId);
+        return;
+    }
+    
+    if (producto && nuevaCantidad > producto.stock) {
+        showNotification(`⚠️ Stock insuficiente. Máximo: ${producto.stock}`, 'warning');
+        return;
+    }
+    
+    carrito[index].cantidad = nuevaCantidad;
+    carrito[index].subtotal = nuevaCantidad * carrito[index].precio;
+    
+    renderCarrito();
+    calcularTotales();
+    renderProductos();
+}
+
+// ============================================================
+// ELIMINAR DEL CARRITO
+// ============================================================
+function eliminarDelCarrito(productoId) {
+    const item = carrito.find(c => c.id === productoId);
+    carrito = carrito.filter(item => item.id !== productoId);
+    renderCarrito();
+    calcularTotales();
+    renderProductos();
+    if (item) showNotification(`🗑️ ${item.nombre} eliminado`, 'info');
+}
+
+// ============================================================
+// CALCULAR TOTALES
+// ============================================================
+function calcularTotales() {
+    const subtotal = carrito.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const descuentoPct = parseFloat(document.getElementById('descuentoPct').value) || 0;
+    const descuentoMonto = subtotal * (descuentoPct / 100);
+    const total = subtotal - descuentoMonto;
+    
+    document.getElementById('subtotal').textContent = `$${formatNumber(subtotal)}`;
+    document.getElementById('descMonto').textContent = descuentoMonto > 0 ? `-$${formatNumber(descuentoMonto)}` : '$0';
+    document.getElementById('totalDisplay').textContent = `$${formatNumber(total)}`;
+}
+
+// ============================================================
+// PROCESAR VENTA
+// ============================================================
+function procesarVenta() {
+    if (carrito.length === 0) {
+        showNotification('⚠️ El carrito está vacío', 'warning');
+        return;
+    }
+    
+    // Verificar stock antes de procesar
+    for (const item of carrito) {
+        const prod = productos.find(p => p.id === item.id);
+        if (prod && item.cantidad > prod.stock) {
+            showNotification(`⚠️ Stock insuficiente: "${prod.nombre}" (${prod.stock} disponibles)`, 'error');
+            return;
+        }
+    }
+    
+    const btnProcesar = document.getElementById('btnProcesar');
+    btnProcesar.disabled = true;
+    btnProcesar.textContent = '⏳ Procesando...';
+    
+    const ventaData = {
+        items: carrito.map(item => ({
+            producto_id: item.id,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio
+        })),
+        cliente_nombre: document.getElementById('clienteNombre').value || '',
+        cliente_doc: document.getElementById('clienteDoc').value || '',
+        metodo_pago: document.getElementById('metodoPago').value,
+        descuento_pct: parseFloat(document.getElementById('descuentoPct').value) || 0,
+        notas: document.getElementById('notas').value || '',
+        sede_id: parseInt(document.getElementById('sedeId').value) || 1
+    };
+    
+    fetch('/ventas/procesar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(ventaData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.ok) {
+            showNotification(`✅ Venta #${data.numero_factura} procesada con éxito!`, 'success');
+            clearCartSilent();
+            window.open(`/ventas/${data.venta_id}/factura`, '_blank');
+            cargarProductos(); // Recargar productos para actualizar stock
+        } else {
+            showNotification(`❌ ${data.error || 'Error procesando la venta'}`, 'error');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        showNotification('❌ Error al procesar la venta', 'error');
+    })
+    .finally(() => {
+        btnProcesar.disabled = false;
+        btnProcesar.textContent = '✓ PROCESAR VENTA';
+    });
+}
+
+// ============================================================
+// LIMPIAR CARRITO
+// ============================================================
+function clearCart() {
+    if (carrito.length === 0) return;
+    if (confirm('¿Limpiar todo el carrito?')) {
+        clearCartSilent();
+        showNotification('🧹 Carrito limpiado', 'info');
+    }
+}
+
+function clearCartSilent() {
+    carrito = [];
+    renderCarrito();
+    calcularTotales();
+    renderProductos();
+}
+
+// ============================================================
+// FILTROS Y BÚSQUEDA
+// ============================================================
+function filterCategory(btn, categoria) {
+    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    categoriaActual = categoria;
+    renderProductos();
+}
+
+function searchProducts() {
+    if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
+    timeoutBusqueda = setTimeout(renderProductos, 300);
+}
+
+// Cambiar sede
+document.getElementById('sedeId').addEventListener('change', function() {
+    carrito = [];
+    renderCarrito();
+    calcularTotales();
+    cargarProductos();
+});
+
+// ============================================================
+// UTILIDADES
 // ============================================================
 function formatNumber(num) {
     return new Intl.NumberFormat('es-CO').format(Math.round(num || 0));
 }
 
-function escHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>"]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        if (m === '"') return '&quot;';
-        return m;
-    });
-}
-
-function getTotales() {
-    const subtotal = carrito.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-    const descPct = parseFloat(document.getElementById('descuentoPct').value) || 0;
-    const descMonto = subtotal * (descPct / 100);
-    const total = subtotal - descMonto;
-    return { subtotal, descPct, descMonto, total };
-}
-
-// ============================================================
-// 3. NOTIFICACIONES (TOAST)
-// ============================================================
 function showNotification(message, type = 'info') {
-    // Usar el toast global si existe
-    if (window.showToast) {
-        window.showToast(message, type);
-        return;
-    }
-    
-    // Fallback local
     const colors = {
         success: '#00e676',
         error: '#ff4081',
@@ -839,624 +967,50 @@ function showNotification(message, type = 'info') {
 }
 
 // ============================================================
-// 4. CARGAR PRODUCTOS
-// ============================================================
-function cargarProductos() {
-    const sedeId = document.getElementById('sedeId').value;
-    const grid = document.getElementById('posGrid');
-    grid.innerHTML = '<div class="loading-spinner">⏳ Cargando productos...</div>';
-    
-    fetch(`/api/productos?sede_id=${encodeURIComponent(sedeId)}`, {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
-    })
-    .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-    })
-    .then(data => {
-        productos = data || [];
-        renderProductos();
-    })
-    .catch(err => {
-        console.error('Error cargando productos:', err);
-        grid.innerHTML = `<div class="loading-spinner" style="color: var(--red);">
-            ❌ Error al cargar productos<br>
-            <small style="font-size: 12px;">${escHtml(err.message)}</small>
-        </div>`;
-        showNotification('Error al cargar productos', 'error');
-    });
-}
-
-// ============================================================
-// 5. RENDERIZAR PRODUCTOS
-// ============================================================
-function renderProductos() {
-    const grid = document.getElementById('posGrid');
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    
-    let filtered = productos.filter(p => p.activo && p.stock > 0);
-    
-    if (categoriaActual) {
-        filtered = filtered.filter(p => p.categoria === categoriaActual);
-    }
-    
-    if (searchTerm) {
-        filtered = filtered.filter(p => 
-            p.nombre.toLowerCase().includes(searchTerm) ||
-            (p.codigo_barras && p.codigo_barras.includes(searchTerm))
-        );
-    }
-    
-    if (filtered.length === 0) {
-        grid.innerHTML = `<div class="loading-spinner">📭 No hay productos disponibles</div>`;
-        return;
-    }
-    
-    const cartIds = new Set(carrito.map(c => c.id));
-    
-    grid.innerHTML = filtered.map(p => {
-        const inCart = cartIds.has(p.id);
-        const isLowStock = p.stock <= (p.stock_minimo || 3);
-        const stockClass = p.stock <= 0 ? 'out' : isLowStock ? 'low' : '';
-        
-        return `
-            <div class="product-card" onclick="agregarAlCarrito(${p.id})" 
-                 data-id="${p.id}" role="button" tabindex="0"
-                 title="${escHtml(p.nombre)} - Stock: ${p.stock}">
-                <div class="product-badge ${inCart ? 'in-cart' : ''}">
-                    ${inCart ? '✓ En carrito' : p.stock}
-                </div>
-                <div class="product-emoji">${escHtml(p.emoji || '📦')}</div>
-                <div class="product-name" title="${escHtml(p.nombre)}">${escHtml(p.nombre)}</div>
-                <div class="product-price">$${formatNumber(p.precio_venta)}</div>
-                <div class="product-stock ${stockClass}">
-                    ${p.stock <= 0 ? '❌ Sin stock' : `📦 ${p.stock} uds`}
-                    ${p.talla ? ` · ${escHtml(p.talla)}` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// ============================================================
-// 6. BÚSQUEDA Y FILTROS
-// ============================================================
-function searchProducts() {
-    if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
-    timeoutBusqueda = setTimeout(renderProductos, 300);
-}
-
-function filterCategory(btn, categoria) {
-    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    categoriaActual = categoria;
-    renderProductos();
-}
-
-// Cambio de sede
-document.getElementById('sedeId').addEventListener('change', function() {
-    carrito = [];
-    renderCarrito();
-    calcularTotales();
-    cargarProductos();
-});
-
-// ============================================================
-// 7. ESCANER DE CÓDIGO DE BARRAS
-// ============================================================
-function scanBarcode() {
-    const input = document.getElementById('scanInput');
-    const codigo = input.value.trim();
-    
-    if (!codigo) {
-        showNotification('📷 Escanea o escribe un código de barras', 'warning');
-        input.focus();
-        return;
-    }
-    
-    // Buscar localmente primero (más rápido)
-    const localProduct = productos.find(p => p.codigo_barras === codigo);
-    if (localProduct && localProduct.stock > 0) {
-        agregarAlCarrito(localProduct.id);
-        input.value = '';
-        input.focus();
-        return;
-    }
-    
-    // Si no está localmente, buscar en el servidor
-    fetch(`/api/buscar-producto?codigo=${encodeURIComponent(codigo)}`, {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
-    })
-    .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-    })
-    .then(data => {
-        if (data.found && data.producto) {
-            // Si el producto no está en la lista local, agregarlo
-            if (!productos.find(p => p.id === data.producto.id)) {
-                productos.push(data.producto);
-            }
-            agregarAlCarrito(data.producto.id);
-            input.value = '';
-            input.focus();
-            showNotification(`✅ ${data.producto.nombre} agregado`, 'success');
-        } else {
-            showNotification(`❌ Código no encontrado: ${codigo}`, 'error');
-            input.select();
-        }
-    })
-    .catch(err => {
-        console.error('Error en escaneo:', err);
-        showNotification('❌ Error al buscar el código', 'error');
-    });
-}
-
-// Enter en el campo de escaneo
-document.getElementById('scanInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        scanBarcode();
-    }
-});
-
-// ============================================================
-// 8. OPERACIONES DEL CARRITO
-// ============================================================
-function agregarAlCarrito(productoId) {
-    const producto = productos.find(p => p.id === productoId);
-    if (!producto) {
-        showNotification('❌ Producto no encontrado', 'error');
-        return;
-    }
-    
-    if (producto.stock <= 0) {
-        showNotification(`❌ "${producto.nombre}" sin stock`, 'error');
-        return;
-    }
-    
-    const existente = carrito.find(item => item.id === productoId);
-    
-    if (existente) {
-        if (existente.cantidad + 1 > producto.stock) {
-            showNotification(`⚠️ Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
-            // Feedback visual
-            const card = document.querySelector(`.product-card[data-id="${productoId}"]`);
-            if (card) {
-                card.style.borderColor = 'var(--red)';
-                setTimeout(() => card.style.borderColor = '', 1000);
-            }
-            return;
-        }
-        existente.cantidad++;
-        existente.subtotal = existente.cantidad * existente.precio;
-    } else {
-        carrito.push({
-            id: producto.id,
-            nombre: producto.nombre,
-            precio: producto.precio_venta,
-            cantidad: 1,
-            subtotal: producto.precio_venta,
-            emoji: producto.emoji || '📦'
-        });
-    }
-    
-    renderCarrito();
-    calcularTotales();
-    renderProductos(); // Actualizar badges
-    
-    // Feedback visual
-    const card = document.querySelector(`.product-card[data-id="${productoId}"]`);
-    if (card) {
-        card.style.transform = 'scale(0.95)';
-        setTimeout(() => card.style.transform = '', 150);
-    }
-    
-    showNotification(`➕ ${producto.nombre} agregado`, 'success');
-}
-
-function cambiarCantidad(productoId, delta) {
-    const index = carrito.findIndex(item => item.id === productoId);
-    if (index === -1) return;
-    
-    const producto = productos.find(p => p.id === productoId);
-    const nuevaCantidad = carrito[index].cantidad + delta;
-    
-    if (nuevaCantidad <= 0) {
-        eliminarDelCarrito(productoId);
-        return;
-    }
-    
-    if (producto && nuevaCantidad > producto.stock) {
-        showNotification(`⚠️ Stock insuficiente. Máximo: ${producto.stock}`, 'warning');
-        return;
-    }
-    
-    carrito[index].cantidad = nuevaCantidad;
-    carrito[index].subtotal = nuevaCantidad * carrito[index].precio;
-    
-    renderCarrito();
-    calcularTotales();
-    renderProductos();
-}
-
-function eliminarDelCarrito(productoId) {
-    const item = carrito.find(c => c.id === productoId);
-    carrito = carrito.filter(item => item.id !== productoId);
-    renderCarrito();
-    calcularTotales();
-    renderProductos();
-    if (item) showNotification(`🗑️ ${item.nombre} eliminado`, 'info');
-}
-
-// ============================================================
-// 9. RENDERIZAR CARRITO
-// ============================================================
-function renderCarrito() {
-    const container = document.getElementById('cartItems');
-    const cartCount = document.getElementById('cartCount');
-    const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
-    
-    cartCount.textContent = `${totalItems} items`;
-    
-    if (carrito.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                🛒 Carrito vacío<br>
-                <small>Selecciona productos para comenzar</small>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = carrito.map(item => `
-        <div class="cart-item" data-id="${item.id}">
-            <div class="cart-item-info">
-                <div class="cart-item-name">${escHtml(item.emoji)} ${escHtml(item.nombre)}</div>
-                <div class="cart-item-price">$${formatNumber(item.precio)} c/u</div>
-            </div>
-            <div class="cart-item-controls">
-                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, -1)" 
-                        aria-label="Disminuir cantidad" title="Disminuir">➖</button>
-                <span class="cart-item-qty">${item.cantidad}</span>
-                <button class="btn-icon" onclick="cambiarCantidad(${item.id}, 1)" 
-                        aria-label="Aumentar cantidad" title="Aumentar">➕</button>
-                <button class="btn-icon danger" onclick="eliminarDelCarrito(${item.id})" 
-                        aria-label="Eliminar producto" title="Eliminar">✕</button>
-            </div>
-            <div class="cart-item-total">$${formatNumber(item.subtotal)}</div>
-        </div>
-    `).join('');
-}
-
-// ============================================================
-// 10. CALCULAR TOTALES
-// ============================================================
-function calcularTotales() {
-    const { subtotal, descPct, descMonto, total } = getTotales();
-    
-    document.getElementById('subtotal').textContent = `$${formatNumber(subtotal)}`;
-    document.getElementById('descMonto').textContent = descMonto > 0 ? `-$${formatNumber(descMonto)}` : '$0';
-    document.getElementById('totalDisplay').textContent = `$${formatNumber(total)}`;
-}
-
-// ============================================================
-// 11. LIMPIAR CARRITO
-// ============================================================
-function clearCart() {
-    if (carrito.length === 0) {
-        showNotification('🛒 El carrito ya está vacío', 'info');
-        return;
-    }
-    
-    if (!confirm('¿Estás seguro de limpiar todo el carrito?')) return;
-    
-    carrito = [];
-    renderCarrito();
-    calcularTotales();
-    renderProductos();
-    showNotification('🧹 Carrito limpiado', 'info');
-}
-
-// ============================================================
-// 12. MODAL DE CONFIRMACIÓN
-// ============================================================
-function mostrarConfirmacion() {
-    if (carrito.length === 0) {
-        showNotification('⚠️ El carrito está vacío', 'warning');
-        return;
-    }
-    
-    // Validar stock antes de mostrar confirmación
-    for (const item of carrito) {
-        const producto = productos.find(p => p.id === item.id);
-        if (producto && item.cantidad > producto.stock) {
-            showNotification(`⚠️ Stock insuficiente: "${producto.nombre}" (${producto.stock} disponibles)`, 'error');
-            return;
-        }
-    }
-    
-    const modal = document.getElementById('confirmModal');
-    const resumen = document.getElementById('modalResumen');
-    const modalTotal = document.getElementById('modalTotal');
-    
-    const { subtotal, descPct, descMonto, total } = getTotales();
-    const metodoPago = document.getElementById('metodoPago');
-    const metodoLabel = metodoPago ? metodoPago.options[metodoPago.selectedIndex]?.text || 'Efectivo' : 'Efectivo';
-    const clienteNombre = document.getElementById('clienteNombre').value.trim() || 'Cliente general';
-    const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
-    
-    // Generar resumen
-    let html = `
-        <div class="modal-summary-item">
-            <span class="label">👤 Cliente</span>
-            <span class="value">${escHtml(clienteNombre)}</span>
-        </div>
-        <div class="modal-summary-item">
-            <span class="label">💳 Método de Pago</span>
-            <span class="value">${escHtml(metodoLabel)}</span>
-        </div>
-        <div class="modal-summary-item">
-            <span class="label">📦 Items</span>
-            <span class="value">${totalItems} productos (${carrito.length} tipos)</span>
-        </div>
-        <hr class="modal-divider">
-        <div style="font-weight: 600; margin-bottom: 8px; color: var(--gold);">📋 Detalle:</div>
-    `;
-    
-    carrito.forEach(item => {
-        html += `
-            <div class="modal-summary-item">
-                <span class="label">${escHtml(item.emoji)} ${escHtml(item.nombre)} × ${item.cantidad}</span>
-                <span class="value">$${formatNumber(item.subtotal)}</span>
-            </div>
-        `;
-    });
-    
-    html += `
-        <hr class="modal-divider">
-        <div class="modal-summary-item">
-            <span class="label">Subtotal</span>
-            <span class="value">$${formatNumber(subtotal)}</span>
-        </div>
-        <div class="modal-summary-item">
-            <span class="label">Descuento (${descPct}%)</span>
-            <span class="value" style="color: var(--red);">-$${formatNumber(descMonto)}</span>
-        </div>
-    `;
-    
-    resumen.innerHTML = html;
-    modalTotal.textContent = `$${formatNumber(total)}`;
-    
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function cerrarModal() {
-    document.getElementById('confirmModal').classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-// Cerrar modal con Escape o click fuera
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') cerrarModal();
-});
-
-document.getElementById('confirmModal').addEventListener('click', function(e) {
-    if (e.target === this) cerrarModal();
-});
-
-// ============================================================
-// 13. PROCESAR VENTA
-// ============================================================
-function procesarVenta() {
-    if (isProcessing) return;
-    if (carrito.length === 0) {
-        showNotification('⚠️ El carrito está vacío', 'warning');
-        cerrarModal();
-        return;
-    }
-    
-    isProcessing = true;
-    const btnConfirmar = document.getElementById('btnConfirmarVenta');
-    const btnProcesar = document.getElementById('btnProcesar');
-    
-    btnConfirmar.disabled = true;
-    btnConfirmar.textContent = '⏳ Procesando...';
-    btnProcesar.disabled = true;
-    btnProcesar.textContent = '⏳ Procesando...';
-    
-    const { descPct } = getTotales();
-    
-    const ventaData = {
-        items: carrito.map(item => ({
-            producto_id: item.id,
-            cantidad: item.cantidad,
-            precio_unitario: item.precio
-        })),
-        cliente_nombre: document.getElementById('clienteNombre').value.trim() || '',
-        cliente_doc: document.getElementById('clienteDoc').value.trim() || '',
-        metodo_pago: document.getElementById('metodoPago').value,
-        descuento_pct: descPct,
-        notas: document.getElementById('notas').value.trim() || '',
-        sede_id: parseInt(document.getElementById('sedeId').value) || 1
-    };
-    
-    // Enviar al servidor
-    fetch('/ventas/procesar', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify(ventaData)
-    })
-    .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
-    })
-    .then(data => {
-        cerrarModal();
-        
-        if (data.ok) {
-            ventaProcesadaId = data.venta_id;
-            showNotification(`✅ Venta #${data.numero_factura} procesada con éxito!`, 'success');
-            
-            // Mostrar toast con botones de descarga
-            mostrarToastFactura(data.venta_id, data.numero_factura, data.total);
-            
-            // Limpiar carrito y recargar productos
-            carrito = [];
-            renderCarrito();
-            calcularTotales();
-            cargarProductos();
-            
-            // Limpiar campos
-            document.getElementById('clienteNombre').value = '';
-            document.getElementById('clienteDoc').value = '';
-            document.getElementById('notas').value = '';
-            document.getElementById('descuentoPct').value = '0';
-        } else {
-            showNotification(`❌ ${data.error || 'Error procesando la venta'}`, 'error');
-        }
-    })
-    .catch(err => {
-        console.error('Error procesando venta:', err);
-        cerrarModal();
-        showNotification(`❌ ${err.message || 'Error al procesar la venta'}`, 'error');
-    })
-    .finally(() => {
-        isProcessing = false;
-        btnConfirmar.disabled = false;
-        btnConfirmar.textContent = '✅ Confirmar Venta';
-        btnProcesar.disabled = false;
-        btnProcesar.textContent = '✓ PROCESAR VENTA';
-    });
-}
-
-// ============================================================
-// 14. TOAST DE FACTURA
-// ============================================================
-function mostrarToastFactura(ventaId, numeroFactura, total) {
-    const container = document.getElementById('facturaToastContainer');
-    
-    // Limpiar toast anterior
-    if (facturaToastTimer) {
-        clearTimeout(facturaToastTimer);
-        facturaToastTimer = null;
-    }
-    container.innerHTML = '';
-    
-    const toast = document.createElement('div');
-    toast.className = 'factura-toast';
-    toast.style.animation = 'slideUp 0.3s ease';
-    toast.innerHTML = `
-        <div class="icon">🧾</div>
-        <div class="title">¡Venta Completada!</div>
-        <div class="subtitle">Factura #${numeroFactura} · $${formatNumber(total)}</div>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px;">
-            <button class="btn-download" onclick="descargarFactura(${ventaId})">
-                📥 Descargar
-            </button>
-            <button class="btn-download" onclick="verFactura(${ventaId})" 
-                    style="background: linear-gradient(135deg, var(--cyan), #0097a7); color: #000;">
-                👁️ Ver
-            </button>
-            <button class="btn-close-toast" onclick="cerrarToastFactura()">✕ Cerrar</button>
-        </div>
-    `;
-    
-    container.appendChild(toast);
-    
-    // Auto-cerrar después de 20 segundos
-    facturaToastTimer = setTimeout(cerrarToastFactura, 20000);
-}
-
-function descargarFactura(ventaId) {
-    window.open(`/ventas/${ventaId}/factura`, '_blank');
-    showNotification('📥 Abriendo factura...', 'success');
-}
-
-function verFactura(ventaId) {
-    window.open(`/ventas/${ventaId}/factura`, '_blank', 'width=480,height=720,scrollbars=yes');
-}
-
-function cerrarToastFactura() {
-    const container = document.getElementById('facturaToastContainer');
-    const toast = container.querySelector('.factura-toast');
-    if (toast) {
-        toast.style.animation = 'slideUp 0.3s ease reverse';
-        setTimeout(() => container.innerHTML = '', 300);
-    }
-    if (facturaToastTimer) {
-        clearTimeout(facturaToastTimer);
-        facturaToastTimer = null;
-    }
-}
-
-// ============================================================
-// 15. ATALOS DE TECLADO
+// ATALOS DE TECLADO
 // ============================================================
 document.addEventListener('keydown', function(e) {
-    // Ctrl+F: focus en búsqueda
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        const searchInput = document.getElementById('searchInput');
-        searchInput.focus();
-        searchInput.select();
-    }
-    
     // F1: focus en escáner
     if (e.key === 'F1') {
         e.preventDefault();
-        const scanInput = document.getElementById('scanInput');
-        scanInput.focus();
-        scanInput.select();
+        document.getElementById('scanInput').focus();
+        document.getElementById('scanInput').select();
+    }
+    
+    // Ctrl+F: focus en búsqueda
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+        document.getElementById('searchInput').select();
     }
     
     // Ctrl+Enter: procesar venta
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (carrito.length > 0) {
-            mostrarConfirmacion();
-        }
-    }
-    
-    // Escape en modales
-    if (e.key === 'Escape') {
-        cerrarModal();
-        cerrarToastFactura();
+        if (carrito.length > 0) procesarVenta();
     }
 });
 
 // ============================================================
-// 16. INICIALIZACIÓN
+// AGREGAR ANIMACIONES
 // ============================================================
-document.addEventListener('DOMContentLoaded', function() {
-    cargarProductos();
-    calcularTotales();
-    
-    // Focus en el escáner después de cargar
-    setTimeout(() => {
-        document.getElementById('scanInput').focus();
-    }, 500);
-    
-    // Actualizar totales al cambiar descuento o método de pago
-    document.getElementById('metodoPago').addEventListener('change', function() {
-        // Solo actualizar la UI si hay items
-        if (carrito.length > 0) {
-            calcularTotales();
-        }
-    });
-});
+const styleAnim = document.createElement('style');
+styleAnim.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(styleAnim);
 
 // Exponer funciones globales
 window.cargarProductos = cargarProductos;
 window.renderProductos = renderProductos;
+window.recargarProductos = recargarProductos;
 window.filterCategory = filterCategory;
 window.searchProducts = searchProducts;
 window.scanBarcode = scanBarcode;
@@ -1465,14 +1019,8 @@ window.cambiarCantidad = cambiarCantidad;
 window.eliminarDelCarrito = eliminarDelCarrito;
 window.clearCart = clearCart;
 window.calcularTotales = calcularTotales;
-window.mostrarConfirmacion = mostrarConfirmacion;
-window.cerrarModal = cerrarModal;
 window.procesarVenta = procesarVenta;
-window.descargarFactura = descargarFactura;
-window.verFactura = verFactura;
-window.cerrarToastFactura = cerrarToastFactura;
-window.showNotification = showNotification;
 window.formatNumber = formatNumber;
-
+window.showNotification = showNotification;
 </script>
 {% endblock %}
