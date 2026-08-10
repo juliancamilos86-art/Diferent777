@@ -32,6 +32,97 @@
     top: 20px;
     max-height: calc(100vh - 100px);
   }
+
+  /* ============================================================
+     PESTAÑAS DE VENTA (multi-cliente)
+     ============================================================ */
+  .venta-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 10px 0;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+  }
+
+  .venta-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    transition: all 0.2s;
+    max-width: 160px;
+  }
+
+  .venta-tab:hover {
+    color: var(--gold);
+  }
+
+  .venta-tab.active {
+    background: linear-gradient(135deg, rgba(212,160,23,0.15), transparent);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .venta-tab-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .venta-tab-count {
+    background: var(--gold);
+    color: #000;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-family: 'Orbitron', monospace;
+    flex-shrink: 0;
+  }
+
+  .venta-tab-close {
+    opacity: 0.6;
+    padding: 0 2px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .venta-tab-close:hover {
+    opacity: 1;
+    color: var(--red);
+  }
+
+  .venta-tab-add {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+  }
+
+  .venta-tab-add:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
   
   .cart-header {
     padding: 16px;
@@ -40,7 +131,6 @@
     justify-content: space-between;
     align-items: center;
     background: linear-gradient(135deg, rgba(212,160,23,0.1), transparent);
-    border-radius: 16px 16px 0 0;
     flex-shrink: 0;
   }
   
@@ -48,6 +138,12 @@
     font-weight: 700;
     font-size: 18px;
     color: var(--gold);
+  }
+
+  .cart-header-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
   }
   
   .cart-items {
@@ -223,6 +319,12 @@
   .product-stock.out {
     color: var(--red);
     font-weight: 700;
+  }
+
+  .product-reserved {
+    font-size: 9px;
+    color: var(--purple);
+    margin-top: 2px;
   }
   
   .product-badge {
@@ -560,6 +662,9 @@
       min-width: 60px;
       font-size: 12px;
     }
+    .venta-tab {
+      max-width: 110px;
+    }
   }
 </style>
 
@@ -604,7 +709,7 @@
         </button>
         <span style="font-size: 11px; color: var(--text-muted);" id="productosCount">0 productos</span>
         <span style="font-size: 10px; color: var(--text-muted); margin-left: auto;">
-          F1: Escáner · Ctrl+Enter: Vender
+          F1: Escáner · Ctrl+Enter: Vender · Ctrl+Shift+N: Nueva venta
         </span>
       </div>
     </div>
@@ -616,11 +721,17 @@
 
   <!-- Panel Derecho - Carrito -->
   <div class="cart-panel">
+    <!-- Pestañas de venta (multi-cliente) -->
+    <div class="venta-tabs" id="ventaTabs"></div>
+
     <div class="cart-header">
-      <span class="cart-header-title">🧾 CARRITO</span>
+      <div>
+        <div class="cart-header-title">🧾 CARRITO</div>
+        <div class="cart-header-subtitle" id="cartSubtitle">Venta 1</div>
+      </div>
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 12px; color: var(--text-muted);" id="cartCount">0 items</span>
-        <button class="btn-icon danger" onclick="clearCart()" title="Limpiar carrito">🗑️</button>
+        <button class="btn-icon danger" onclick="clearCart()" title="Limpiar carrito de esta venta">🗑️</button>
       </div>
     </div>
     
@@ -635,18 +746,18 @@
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
         <div>
           <label class="form-label">👤 Cliente</label>
-          <input type="text" id="clienteNombre" class="form-control" placeholder="Nombre (opcional)">
+          <input type="text" id="clienteNombre" class="form-control" placeholder="Nombre (opcional)" oninput="onInputVentaActiva()">
         </div>
         <div>
           <label class="form-label">📄 Documento</label>
-          <input type="text" id="clienteDoc" class="form-control" placeholder="CC / NIT (opcional)">
+          <input type="text" id="clienteDoc" class="form-control" placeholder="CC / NIT (opcional)" oninput="onInputVentaActiva()">
         </div>
       </div>
       
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
         <div>
           <label class="form-label">💳 Método de Pago</label>
-          <select id="metodoPago" class="form-control">
+          <select id="metodoPago" class="form-control" onchange="onInputVentaActiva()">
             <option value="efectivo">💵 Efectivo</option>
             <option value="tarjeta">💳 Tarjeta</option>
             <option value="nequi">📱 Nequi</option>
@@ -657,13 +768,13 @@
         <div>
           <label class="form-label">🏷️ Descuento %</label>
           <input type="number" id="descuentoPct" class="form-control" value="0" min="0" max="100" step="1" 
-                 oninput="calcularTotales()">
+                 oninput="onInputVentaActiva(); calcularTotales();">
         </div>
       </div>
       
       <div class="form-group" style="margin-bottom: 12px;">
         <label class="form-label">📝 Notas</label>
-        <input type="text" id="notas" class="form-control" placeholder="Notas adicionales...">
+        <input type="text" id="notas" class="form-control" placeholder="Notas adicionales..." oninput="onInputVentaActiva()">
       </div>
       
       <hr style="border-color: var(--border); margin: 12px 0;">
@@ -736,14 +847,23 @@
 'use strict';
 
 // ============================================================
-// 1. VARIABLES GLOBALES
+// 1. VARIABLES GLOBALES — MULTI-VENTA
 // ============================================================
+// Cada "venta" es una pestaña independiente con su propio carrito,
+// datos de cliente, método de pago, descuento y notas.
+// `productos` sí se comparte entre pestañas: es el catálogo/stock de la sede.
 let productos = [];
-let carrito = [];
+let ventas = [];           // [{ id, seq, carrito, cliente_nombre, cliente_doc, metodo_pago, descuento_pct, notas }]
+let ventaActivaId = null;
+let nextVentaSeq = 1;
+const MAX_VENTAS_ABIERTAS = 8;
+
 let categoriaActual = '';
 let timeoutBusqueda = null;
 let isProcessing = false;
 let facturaToastTimer = null;
+
+const STORAGE_KEY = 'd777_pos_ventas';
 
 // ============================================================
 // 2. FUNCIONES DE UTILIDAD
@@ -752,12 +872,31 @@ function formatNumber(num) {
     return new Intl.NumberFormat('es-CO').format(Math.round(num || 0));
 }
 
-function getTotales() {
-    const subtotal = carrito.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-    const descPct = parseFloat(document.getElementById('descuentoPct').value) || 0;
+function getVentaActiva() {
+    return ventas.find(v => v.id === ventaActivaId) || ventas[0];
+}
+
+function getTotales(venta) {
+    const v = venta || getVentaActiva();
+    const subtotal = v.carrito.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const descPct = parseFloat(v.descuento_pct) || 0;
     const descMonto = subtotal * (descPct / 100);
     const total = subtotal - descMonto;
     return { subtotal, descPct, descMonto, total };
+}
+
+// Cantidad de un producto ya reservada en OTRAS ventas abiertas (para no vender de más)
+function cantidadEnOtrasVentas(productoId) {
+    return ventas.reduce((sum, v) => {
+        if (v.id === ventaActivaId) return sum;
+        const item = v.carrito.find(i => i.id === productoId);
+        return sum + (item ? item.cantidad : 0);
+    }, 0);
+}
+
+function stockDisponible(producto) {
+    const reservado = cantidadEnOtrasVentas(producto.id);
+    return Math.max((producto.stock || 0) - reservado, 0);
 }
 
 // ============================================================
@@ -803,7 +942,153 @@ function showNotification(message, type = 'info') {
 }
 
 // ============================================================
-// 4. CARGAR PRODUCTOS
+// 4. MULTI-VENTA: crear, cambiar, cerrar pestañas
+// ============================================================
+function crearVentaVacia() {
+    return {
+        id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        seq: nextVentaSeq++,
+        carrito: [],
+        cliente_nombre: '',
+        cliente_doc: '',
+        metodo_pago: 'efectivo',
+        descuento_pct: 0,
+        notas: ''
+    };
+}
+
+function crearVenta() {
+    if (ventas.length >= MAX_VENTAS_ABIERTAS) {
+        showNotification(`⚠️ Máximo ${MAX_VENTAS_ABIERTAS} ventas abiertas a la vez`, 'warning');
+        return;
+    }
+    guardarInputsEnVentaActiva();
+    const nueva = crearVentaVacia();
+    ventas.push(nueva);
+    cambiarVenta(nueva.id);
+    showNotification('🆕 Nueva venta iniciada', 'info');
+}
+
+function guardarInputsEnVentaActiva() {
+    const v = getVentaActiva();
+    if (!v) return;
+    v.cliente_nombre = document.getElementById('clienteNombre').value;
+    v.cliente_doc = document.getElementById('clienteDoc').value;
+    v.metodo_pago = document.getElementById('metodoPago').value;
+    v.descuento_pct = parseFloat(document.getElementById('descuentoPct').value) || 0;
+    v.notas = document.getElementById('notas').value;
+}
+
+function onInputVentaActiva() {
+    guardarInputsEnVentaActiva();
+    renderTabs();
+    guardarEstadoVentas();
+}
+
+function cargarInputsDesdeVenta(v) {
+    document.getElementById('clienteNombre').value = v.cliente_nombre || '';
+    document.getElementById('clienteDoc').value = v.cliente_doc || '';
+    document.getElementById('metodoPago').value = v.metodo_pago || 'efectivo';
+    document.getElementById('descuentoPct').value = v.descuento_pct || 0;
+    document.getElementById('notas').value = v.notas || '';
+}
+
+function cambiarVenta(id) {
+    if (id !== ventaActivaId) {
+        guardarInputsEnVentaActiva();
+    }
+    ventaActivaId = id;
+    const v = getVentaActiva();
+    cargarInputsDesdeVenta(v);
+    renderCarrito();
+    calcularTotales();
+    renderProductos();
+    renderTabs();
+    guardarEstadoVentas();
+}
+
+function cerrarVenta(id, ev) {
+    if (ev) ev.stopPropagation();
+    const v = ventas.find(x => x.id === id);
+    if (!v) return;
+
+    if (v.carrito.length > 0) {
+        const nombre = v.cliente_nombre?.trim() || `Venta ${v.seq}`;
+        if (!confirm(`"${nombre}" todavía tiene productos en el carrito.\n¿Cerrar esta venta de todas formas?`)) {
+            return;
+        }
+    }
+
+    const idx = ventas.findIndex(x => x.id === id);
+    ventas = ventas.filter(x => x.id !== id);
+
+    if (ventas.length === 0) {
+        const nueva = crearVentaVacia();
+        ventas.push(nueva);
+        cambiarVenta(nueva.id);
+        return;
+    }
+
+    if (ventaActivaId === id) {
+        const siguiente = ventas[Math.max(0, idx - 1)] || ventas[0];
+        cambiarVenta(siguiente.id);
+    } else {
+        renderTabs();
+        guardarEstadoVentas();
+    }
+}
+
+function renderTabs() {
+    const el = document.getElementById('ventaTabs');
+    const subtitle = document.getElementById('cartSubtitle');
+    if (!el) return;
+
+    el.innerHTML = ventas.map(v => {
+        const activa = v.id === ventaActivaId;
+        const nombre = v.cliente_nombre?.trim() ? v.cliente_nombre.trim() : `Venta ${v.seq}`;
+        const itemCount = v.carrito.reduce((s, i) => s + i.cantidad, 0);
+        return `
+            <div class="venta-tab ${activa ? 'active' : ''}" onclick="cambiarVenta('${v.id}')" title="${nombre}">
+                <span class="venta-tab-name">👤 ${nombre}</span>
+                ${itemCount > 0 ? `<span class="venta-tab-count">${itemCount}</span>` : ''}
+                ${ventas.length > 1 ? `<span class="venta-tab-close btn-icon" onclick="cerrarVenta('${v.id}', event)" title="Cerrar venta">✕</span>` : ''}
+            </div>
+        `;
+    }).join('') + `<div class="venta-tab-add" onclick="crearVenta()" title="Nueva venta">➕</div>`;
+
+    const activa = getVentaActiva();
+    if (subtitle && activa) {
+        const nombre = activa.cliente_nombre?.trim() ? activa.cliente_nombre.trim() : `Venta ${activa.seq}`;
+        subtitle.textContent = `${nombre} · ${ventas.length} venta${ventas.length > 1 ? 's' : ''} abierta${ventas.length > 1 ? 's' : ''}`;
+    }
+}
+
+// ---------- Persistencia liviana (sessionStorage, sobrevive a un refresh) ----------
+function guardarEstadoVentas() {
+    try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ventas, ventaActivaId, nextVentaSeq }));
+    } catch (e) { /* almacenamiento no disponible, no es crítico */ }
+}
+
+function cargarEstadoVentas() {
+    try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (!data || !Array.isArray(data.ventas) || data.ventas.length === 0) return false;
+        ventas = data.ventas;
+        ventaActivaId = data.ventaActivaId && ventas.some(v => v.id === data.ventaActivaId)
+            ? data.ventaActivaId
+            : ventas[0].id;
+        nextVentaSeq = data.nextVentaSeq || (Math.max(...ventas.map(v => v.seq || 0)) + 1);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// ============================================================
+// 5. CARGAR PRODUCTOS
 // ============================================================
 function cargarProductos() {
     const sedeId = document.getElementById('sedeId').value;
@@ -839,7 +1124,7 @@ function cargarProductos() {
 }
 
 // ============================================================
-// 5. RENDERIZAR PRODUCTOS
+// 6. RENDERIZAR PRODUCTOS
 // ============================================================
 function renderProductos() {
     const grid = document.getElementById('posGrid');
@@ -866,12 +1151,15 @@ function renderProductos() {
         return;
     }
     
-    const cartIds = new Set(carrito.map(c => c.id));
+    const carritoActivo = getVentaActiva().carrito;
+    const cartIds = new Set(carritoActivo.map(c => c.id));
     
     grid.innerHTML = filtered.map(p => {
         const inCart = cartIds.has(p.id);
-        const sinStock = (p.stock || 0) <= 0;
-        const isLowStock = (p.stock || 0) > 0 && (p.stock || 0) <= (p.stock_minimo || 3);
+        const disponible = stockDisponible(p);
+        const reservadoOtras = cantidadEnOtrasVentas(p.id);
+        const sinStock = disponible <= 0 && !inCart;
+        const isLowStock = disponible > 0 && disponible <= (p.stock_minimo || 3);
         const precio = p.precio_venta || p.precio || 0;
         
         let classes = 'product-card';
@@ -880,22 +1168,23 @@ function renderProductos() {
         return `
             <div class="${classes}" onclick="agregarAlCarrito(${p.id})" data-id="${p.id}">
                 <div class="product-badge ${inCart ? 'en-carrito' : ''}">
-                    ${inCart ? '✓ En carrito' : p.stock || 0}
+                    ${inCart ? '✓ En carrito' : disponible}
                 </div>
                 <div class="product-emoji">${p.emoji || '📦'}</div>
                 <div class="product-name">${p.nombre}</div>
                 <div class="product-price">$${formatNumber(precio)}</div>
                 <div class="product-stock ${isLowStock ? 'low' : ''} ${sinStock ? 'out' : ''}">
-                    ${sinStock ? '❌ Sin stock' : `📦 ${p.stock} uds`}
+                    ${sinStock ? '❌ Sin stock disponible' : `📦 ${disponible} uds`}
                     ${p.talla ? ` · ${p.talla}` : ''}
                 </div>
+                ${reservadoOtras > 0 ? `<div class="product-reserved">🔒 ${reservadoOtras} en otra venta</div>` : ''}
             </div>
         `;
     }).join('');
 }
 
 // ============================================================
-// 6. FUNCIONES DEL CARRITO
+// 7. FUNCIONES DEL CARRITO (operan sobre la venta activa)
 // ============================================================
 function agregarAlCarrito(productoId) {
     const producto = productos.find(p => p.id === productoId);
@@ -903,16 +1192,22 @@ function agregarAlCarrito(productoId) {
         showNotification('❌ Producto no encontrado', 'error');
         return;
     }
-    
-    if (producto.stock <= 0) {
-        showNotification(`❌ "${producto.nombre}" sin stock`, 'error');
+
+    const disponible = stockDisponible(producto);
+    const venta = getVentaActiva();
+    const carrito = venta.carrito;
+    const existente = carrito.find(item => item.id === productoId);
+    const cantidadActualEnEstaVenta = existente ? existente.cantidad : 0;
+
+    if (cantidadActualEnEstaVenta + 1 > disponible + cantidadActualEnEstaVenta - cantidadActualEnEstaVenta && disponible <= 0) {
+        // sin stock disponible (considerando lo reservado en otras ventas)
+        showNotification(`❌ "${producto.nombre}" sin stock disponible`, 'error');
         return;
     }
-    
-    const existente = carrito.find(item => item.id === productoId);
+
     if (existente) {
-        if (existente.cantidad + 1 > producto.stock) {
-            showNotification(`⚠️ Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
+        if (existente.cantidad + 1 > (producto.stock - cantidadEnOtrasVentas(productoId))) {
+            showNotification(`⚠️ Stock insuficiente. Disponible: ${disponible}`, 'warning');
             return;
         }
         existente.cantidad++;
@@ -931,10 +1226,14 @@ function agregarAlCarrito(productoId) {
     renderCarrito();
     calcularTotales();
     renderProductos();
+    renderTabs();
+    guardarEstadoVentas();
     showNotification(`➕ ${producto.nombre} agregado`, 'success');
 }
 
 function cambiarCantidad(productoId, delta) {
+    const venta = getVentaActiva();
+    const carrito = venta.carrito;
     const index = carrito.findIndex(item => item.id === productoId);
     if (index === -1) return;
     
@@ -946,9 +1245,12 @@ function cambiarCantidad(productoId, delta) {
         return;
     }
     
-    if (producto && nuevaCantidad > producto.stock) {
-        showNotification(`⚠️ Stock insuficiente. Máximo: ${producto.stock}`, 'warning');
-        return;
+    if (producto) {
+        const maxPermitido = producto.stock - cantidadEnOtrasVentas(productoId);
+        if (nuevaCantidad > maxPermitido) {
+            showNotification(`⚠️ Stock insuficiente. Máximo disponible: ${maxPermitido}`, 'warning');
+            return;
+        }
     }
     
     carrito[index].cantidad = nuevaCantidad;
@@ -957,36 +1259,45 @@ function cambiarCantidad(productoId, delta) {
     renderCarrito();
     calcularTotales();
     renderProductos();
+    renderTabs();
+    guardarEstadoVentas();
 }
 
 function eliminarDelCarrito(productoId) {
-    const item = carrito.find(c => c.id === productoId);
-    carrito = carrito.filter(item => item.id !== productoId);
+    const venta = getVentaActiva();
+    const item = venta.carrito.find(c => c.id === productoId);
+    venta.carrito = venta.carrito.filter(item => item.id !== productoId);
     renderCarrito();
     calcularTotales();
     renderProductos();
+    renderTabs();
+    guardarEstadoVentas();
     if (item) showNotification(`🗑️ ${item.nombre} eliminado`, 'info');
 }
 
 function clearCart() {
-    if (carrito.length === 0) {
-        showNotification('🛒 El carrito ya está vacío', 'info');
+    const venta = getVentaActiva();
+    if (venta.carrito.length === 0) {
+        showNotification('🛒 El carrito de esta venta ya está vacío', 'info');
         return;
     }
-    if (!confirm('¿Limpiar todo el carrito?')) return;
-    carrito = [];
+    if (!confirm('¿Limpiar el carrito de esta venta?')) return;
+    venta.carrito = [];
     renderCarrito();
     calcularTotales();
     renderProductos();
+    renderTabs();
+    guardarEstadoVentas();
     showNotification('🧹 Carrito limpiado', 'info');
 }
 
 // ============================================================
-// 7. RENDERIZAR CARRITO
+// 8. RENDERIZAR CARRITO
 // ============================================================
 function renderCarrito() {
     const container = document.getElementById('cartItems');
     const cartCount = document.getElementById('cartCount');
+    const carrito = getVentaActiva().carrito;
     const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
     
     cartCount.textContent = `${totalItems} items`;
@@ -1019,10 +1330,10 @@ function renderCarrito() {
 }
 
 // ============================================================
-// 8. CALCULAR TOTALES
+// 9. CALCULAR TOTALES
 // ============================================================
 function calcularTotales() {
-    const { subtotal, descPct, descMonto, total } = getTotales();
+    const { subtotal, descMonto, total } = getTotales();
     
     document.getElementById('subtotal').textContent = `$${formatNumber(subtotal)}`;
     document.getElementById('descMonto').textContent = descMonto > 0 ? `-$${formatNumber(descMonto)}` : '$0';
@@ -1030,7 +1341,7 @@ function calcularTotales() {
 }
 
 // ============================================================
-// 9. ESCANER DE CÓDIGO DE BARRAS
+// 10. ESCÁNER DE CÓDIGO DE BARRAS
 // ============================================================
 function scanBarcode() {
     const codigo = document.getElementById('scanInput').value.trim();
@@ -1040,7 +1351,7 @@ function scanBarcode() {
     }
     
     const local = productos.find(p => p.codigo_barras === codigo);
-    if (local && local.stock > 0) {
+    if (local && stockDisponible(local) > 0) {
         agregarAlCarrito(local.id);
         document.getElementById('scanInput').value = '';
         return;
@@ -1068,7 +1379,7 @@ function scanBarcode() {
 }
 
 // ============================================================
-// 10. FILTROS Y BÚSQUEDA
+// 11. FILTROS Y BÚSQUEDA
 // ============================================================
 function filterCategory(btn, categoria) {
     document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
@@ -1083,20 +1394,24 @@ function searchProducts() {
 }
 
 // ============================================================
-// 11. MODAL DE CONFIRMACIÓN
+// 12. MODAL DE CONFIRMACIÓN
 // ============================================================
 function mostrarConfirmacion() {
-    if (carrito.length === 0) {
+    const venta = getVentaActiva();
+    if (venta.carrito.length === 0) {
         showNotification('⚠️ El carrito está vacío', 'warning');
         return;
     }
     
-    // Validar stock
-    for (const item of carrito) {
+    // Validar stock (considerando lo reservado en otras ventas abiertas)
+    for (const item of venta.carrito) {
         const producto = productos.find(p => p.id === item.id);
-        if (producto && item.cantidad > producto.stock) {
-            showNotification(`⚠️ Stock insuficiente: "${producto.nombre}"`, 'error');
-            return;
+        if (producto) {
+            const maxPermitido = producto.stock - cantidadEnOtrasVentas(item.id);
+            if (item.cantidad > maxPermitido) {
+                showNotification(`⚠️ Stock insuficiente: "${producto.nombre}"`, 'error');
+                return;
+            }
         }
     }
     
@@ -1104,11 +1419,11 @@ function mostrarConfirmacion() {
     const resumen = document.getElementById('modalResumen');
     const modalTotal = document.getElementById('modalTotal');
     
-    const { subtotal, descPct, descMonto, total } = getTotales();
+    const { subtotal, descPct, descMonto, total } = getTotales(venta);
     const metodoPago = document.getElementById('metodoPago');
     const metodoLabel = metodoPago ? metodoPago.options[metodoPago.selectedIndex]?.text || 'Efectivo' : 'Efectivo';
-    const clienteNombre = document.getElementById('clienteNombre').value.trim() || 'Cliente general';
-    const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+    const clienteNombre = venta.cliente_nombre?.trim() || 'Cliente general';
+    const totalItems = venta.carrito.reduce((sum, item) => sum + item.cantidad, 0);
     
     let html = `
         <div class="modal-summary-item">
@@ -1127,7 +1442,7 @@ function mostrarConfirmacion() {
         <div style="font-weight: 600; margin-bottom: 8px; color: var(--gold);">📋 Detalle:</div>
     `;
     
-    carrito.forEach(item => {
+    venta.carrito.forEach(item => {
         html += `
             <div class="modal-summary-item">
                 <span class="label">${item.emoji} ${item.nombre} × ${item.cantidad}</span>
@@ -1171,11 +1486,17 @@ document.getElementById('confirmModal').addEventListener('click', function(e) {
 });
 
 // ============================================================
-// 12. PROCESAR VENTA (desde el modal)
+// 13. PROCESAR VENTA (desde el modal)
 // ============================================================
 function procesarVenta() {
     if (isProcessing) return;
-    if (carrito.length === 0) {
+
+    // Se captura la venta y su id ANTES del fetch: si el usuario cambia de
+    // pestaña mientras se procesa, la respuesta sigue afectando a la venta
+    // correcta y no a la que quedó activa en pantalla.
+    const ventaId = ventaActivaId;
+    const venta = ventas.find(v => v.id === ventaId);
+    if (!venta || venta.carrito.length === 0) {
         showNotification('⚠️ El carrito está vacío', 'warning');
         cerrarModal();
         return;
@@ -1190,19 +1511,19 @@ function procesarVenta() {
     btnProcesar.disabled = true;
     btnProcesar.textContent = '⏳ Procesando...';
     
-    const { descPct } = getTotales();
+    const { descPct } = getTotales(venta);
     
     const ventaData = {
-        items: carrito.map(item => ({
+        items: venta.carrito.map(item => ({
             producto_id: item.id,
             cantidad: item.cantidad,
             precio_unitario: item.precio
         })),
-        cliente_nombre: document.getElementById('clienteNombre').value.trim() || '',
-        cliente_doc: document.getElementById('clienteDoc').value.trim() || '',
-        metodo_pago: document.getElementById('metodoPago').value,
+        cliente_nombre: (venta.cliente_nombre || '').trim(),
+        cliente_doc: (venta.cliente_doc || '').trim(),
+        metodo_pago: venta.metodo_pago || 'efectivo',
         descuento_pct: descPct,
-        notas: document.getElementById('notas').value.trim() || '',
+        notas: (venta.notas || '').trim(),
         sede_id: parseInt(document.getElementById('sedeId').value) || 1
     };
     
@@ -1225,22 +1546,9 @@ function procesarVenta() {
         
         if (data.ok) {
             showNotification(`✅ Venta #${data.numero_factura} procesada!`, 'success');
-            
-            // MOSTRAR TOAST CON BOTÓN DE DESCARGA
             mostrarToastFactura(data.venta_id, data.numero_factura, data.total);
-            
-            // Limpiar carrito
-            carrito = [];
-            renderCarrito();
-            calcularTotales();
-            renderProductos();
+            despuesDeVentaExitosa(ventaId);
             cargarProductos();
-            
-            // Limpiar campos
-            document.getElementById('clienteNombre').value = '';
-            document.getElementById('clienteDoc').value = '';
-            document.getElementById('notas').value = '';
-            document.getElementById('descuentoPct').value = '0';
         } else {
             showNotification(`❌ ${data.error || 'Error procesando'}`, 'error');
         }
@@ -1259,8 +1567,36 @@ function procesarVenta() {
     });
 }
 
+// Tras completar una venta: si hay otras pestañas abiertas, esa se cierra y
+// pasamos a la siguiente. Si era la única, simplemente se limpia para el
+// próximo cliente (mismo comportamiento de antes).
+function despuesDeVentaExitosa(ventaId) {
+    const idx = ventas.findIndex(v => v.id === ventaId);
+    if (idx === -1) return;
+
+    if (ventas.length > 1) {
+        ventas.splice(idx, 1);
+        const siguiente = ventas[Math.max(0, idx - 1)] || ventas[0];
+        cambiarVenta(siguiente.id);
+    } else {
+        const v = ventas[idx];
+        v.carrito = [];
+        v.cliente_nombre = '';
+        v.cliente_doc = '';
+        v.notas = '';
+        v.descuento_pct = 0;
+        v.metodo_pago = 'efectivo';
+        cargarInputsDesdeVenta(v);
+        renderCarrito();
+        calcularTotales();
+        renderProductos();
+        renderTabs();
+    }
+    guardarEstadoVentas();
+}
+
 // ============================================================
-// 13. TOAST DE FACTURA CON BOTÓN DE DESCARGA
+// 14. TOAST DE FACTURA CON BOTÓN DE DESCARGA
 // ============================================================
 function mostrarToastFactura(ventaId, numeroFactura, total) {
     const container = document.getElementById('facturaToastContainer');
@@ -1317,7 +1653,7 @@ function cerrarToastFactura() {
 }
 
 // ============================================================
-// 14. ATALOS DE TECLADO
+// 15. ATAJOS DE TECLADO
 // ============================================================
 document.addEventListener('keydown', function(e) {
     if (e.key === 'F1') {
@@ -1327,15 +1663,27 @@ document.addEventListener('keydown', function(e) {
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (carrito.length > 0) mostrarConfirmacion();
+        if (getVentaActiva().carrito.length > 0) mostrarConfirmacion();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'N' || e.key === 'n')) {
+        e.preventDefault();
+        crearVenta();
     }
 });
 
 // ============================================================
-// 15. INICIALIZACIÓN
+// 16. INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
+    if (!cargarEstadoVentas()) {
+        ventas = [crearVentaVacia()];
+        ventaActivaId = ventas[0].id;
+    }
+    cargarInputsDesdeVenta(getVentaActiva());
+    renderTabs();
+
     cargarProductos();
+    renderCarrito();
     calcularTotales();
     
     document.getElementById('scanInput').addEventListener('keypress', function(e) {
@@ -1343,9 +1691,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.getElementById('sedeId').addEventListener('change', function() {
-        carrito = [];
+        // Cambiar de sede solo afecta el carrito de la venta activa;
+        // las demás pestañas conservan sus items.
+        const venta = getVentaActiva();
+        venta.carrito = [];
         renderCarrito();
         calcularTotales();
+        renderProductos();
+        renderTabs();
+        guardarEstadoVentas();
         cargarProductos();
     });
     
@@ -1373,6 +1727,10 @@ window.verFactura = verFactura;
 window.cerrarToastFactura = cerrarToastFactura;
 window.formatNumber = formatNumber;
 window.showNotification = showNotification;
+window.crearVenta = crearVenta;
+window.cambiarVenta = cambiarVenta;
+window.cerrarVenta = cerrarVenta;
+window.onInputVentaActiva = onInputVentaActiva;
 
 // Animaciones
 const styleAnim = document.createElement('style');
