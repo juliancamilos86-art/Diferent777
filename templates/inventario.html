@@ -56,7 +56,8 @@
 <!-- ============================================================ -->
 <!-- 👇 FORMULARIO PARA IMPRIMIR ETIQUETAS EN LOTE (AGREGADO) 👇 -->
 <!-- ============================================================ -->
-<form method="POST" action="{{ url_for('productos.imprimir_etiquetas_lote') }}">
+<!-- 🔥 AGREGAMOS target="_blank" PARA QUE ABRA EN OTRA PESTAÑA -->
+<form method="POST" action="{{ url_for('productos.imprimir_etiquetas_lote') }}" target="_blank">
   <div style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center;">
     <button type="submit" class="btn btn-gold">🖨️ Imprimir Etiquetas Seleccionadas</button>
     <span style="font-size: 12px; color: var(--muted);">Selecciona los productos con las casillas para imprimir sus códigos de barras</span>
