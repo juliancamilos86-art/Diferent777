@@ -186,9 +186,12 @@ def imprimir_etiquetas_lote():
     pdf_buffer = generar_pdf_etiquetas(productos)
     
     # 4. Enviar el PDF al navegador para abrir el visor e imprimir
-    return send_file(
+    response = send_file(
         pdf_buffer,
         mimetype='application/pdf',
-        as_attachment=False,  # False abre el visor de PDF en el navegador
+        as_attachment=False,
         download_name='etiquetas_productos.pdf'
     )
+    # 🔥 AGREGAMOS ESTA CABECERA PARA FORZAR QUE SE ABRA EN PESTAÑA NUEVA
+    response.headers['Content-Disposition'] = 'inline; filename="etiquetas_productos.pdf"'
+    return response
