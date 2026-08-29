@@ -3,7 +3,7 @@ from flask_login import login_required
 from models import db, Producto, Categoria, Sede, Responsable
 from datetime import datetime
 import random
-from utils.etiquetas import generar_pdf_etiquetas  # 👈 IMPORTACIÓN NUEVA PARA IMPRIMIR
+from utils.etiquetas import generar_pdf_etiquetas
 
 productos_bp = Blueprint('productos', __name__)
 
@@ -56,6 +56,11 @@ def nuevo_producto():
             flash('Ese código de barras ya existe en el sistema', 'error')
             return render_template('producto_form.html', categorias=cats, sedes=sedes, responsables=resps, producto=None)
 
+        # Validación robusta para evitar el error de la cadena 'None'
+        categoria_val = request.form.get('categoria_id')
+        sede_val = request.form.get('sede_id')
+        responsable_val = request.form.get('responsable_id')
+
         p = Producto(
             nombre=request.form.get('nombre', '').strip(),
             codigo_barras=codigo,
@@ -66,9 +71,9 @@ def nuevo_producto():
             precio_venta=float(request.form.get('precio_venta', 0) or 0),
             stock=int(request.form.get('stock', 0) or 0),
             stock_minimo=int(request.form.get('stock_minimo', 5) or 5),
-            categoria_id=int(request.form['categoria_id']) if request.form.get('categoria_id') else None,
-            sede_id=int(request.form['sede_id']) if request.form.get('sede_id') else None,
-            responsable_id=int(request.form['responsable_id']) if request.form.get('responsable_id') else None,
+            categoria_id=int(categoria_val) if categoria_val and categoria_val != 'None' else None,
+            sede_id=int(sede_val) if sede_val and sede_val != 'None' else None,
+            responsable_id=int(responsable_val) if responsable_val and responsable_val != 'None' else None,
             activo=True, fecha_ingreso=datetime.utcnow()
         )
         db.session.add(p)
@@ -95,9 +100,16 @@ def editar_producto(pid):
         p.precio_venta  = float(request.form.get('precio_venta', 0) or 0)
         p.stock         = int(request.form.get('stock', 0) or 0)
         p.stock_minimo  = int(request.form.get('stock_minimo', 5) or 5)
-        p.categoria_id  = int(request.form['categoria_id']) if request.form.get('categoria_id') else None
-        p.sede_id       = int(request.form['sede_id']) if request.form.get('sede_id') else None
-        p.responsable_id= int(request.form['responsable_id']) if request.form.get('responsable_id') else None
+        
+        # Validación robusta para evitar el error de la cadena 'None'
+        categoria_val = request.form.get('categoria_id')
+        sede_val = request.form.get('sede_id')
+        responsable_val = request.form.get('responsable_id')
+
+        p.categoria_id  = int(categoria_val) if categoria_val and categoria_val != 'None' else None
+        p.sede_id       = int(sede_val) if sede_val and sede_val != 'None' else None
+        p.responsable_id= int(responsable_val) if responsable_val and responsable_val != 'None' else None
+        
         db.session.commit()
         flash(f'✅ Producto "{p.nombre}" actualizado', 'success')
         return redirect(url_for('productos.inventario'))
