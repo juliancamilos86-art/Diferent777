@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required
 from models import db, Producto, Categoria, Sede, Responsable
 from datetime import datetime
 import random
+from utils.etiquetas import generar_pdf_etiquetas  # 👈 IMPORTACIÓN NUEVA PARA IMPRIMIR
 
 productos_bp = Blueprint('productos', __name__)
 
@@ -120,3 +121,40 @@ def generar_codigo():
         if not Producto.query.filter_by(codigo_barras=c).first():
             return jsonify({'codigo': c})
     return jsonify({'codigo': str(random.randint(10**12, 10**13 - 1))})
+
+# =====================================================================
+# 👇 NUEVA RUTA PARA IMPRIMIR ETIQUETAS EN LOTE (SIN DESPERDICIAR ROLLO)
+# =====================================================================
+@productos_bp.route('/imprimir/etiquetas', methods=['POST'])
+@login_required
+def imprimir_etiquetas_lote():
+    # 1. Recibir los IDs de los productos seleccionados en el HTML
+    ids_productos = request.form.getlist('productos_seleccionados')
+    
+    if not ids_productos:
+        flash('No seleccionaste ningún producto para imprimir.', 'warning')
+        return redirect(url_for('productos.inventario'))
+    
+    # 2. Convertir a enteros y consultar a la base de datos
+    try:
+        ids_int = [int(i) for i in ids_productos]
+    except ValueError:
+        flash('Selección inválida.', 'danger')
+        return redirect(url_for('productos.inventario'))
+
+    productos = Producto.query.filter(Producto.id.in_(ids_int)).all()
+    
+    if not productos:
+        flash('No se encontraron los productos seleccionados.', 'danger')
+        return redirect(url_for('productos.inventario'))
+
+    # 3. Generar el PDF en memoria
+    pdf_buffer = generar_pdf_etiquetas(productos)
+    
+    # 4. Enviar el PDF al navegador para abrir el visor e imprimir
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=False,  # False abre el visor de PDF en el navegador
+        download_name='etiquetas_productos.pdf'
+    )
