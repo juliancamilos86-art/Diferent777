@@ -7,6 +7,28 @@ from utils.etiquetas import generar_pdf_etiquetas
 
 productos_bp = Blueprint('productos', __name__)
 
+# ============================================================
+# 🔥 FUNCIÓN AUXILIAR PARA EVITAR ERRORES DE CONVERSIÓN (INT vs STR)
+# ============================================================
+def _parse_id(val):
+    """Convierte un valor a ID numérico. Si es texto (ej. 'ropa'), busca el ID en la BD."""
+    if not val or val == 'None' or val == '':
+        return None
+    # Si ya es un número, lo convierte directo
+    if str(val).isdigit():
+        return int(val)
+    # Si es texto, busca la categoría, sede o responsable por nombre
+    cat = Categoria.query.filter_by(nombre=val).first()
+    if cat:
+        return cat.id
+    sede = Sede.query.filter_by(nombre=val).first()
+    if sede:
+        return sede.id
+    resp = Responsable.query.filter_by(nombre=val).first()
+    if resp:
+        return resp.id
+    return None
+
 @productos_bp.route('/inventario')
 @login_required
 def inventario():
@@ -56,7 +78,7 @@ def nuevo_producto():
             flash('Ese código de barras ya existe en el sistema', 'error')
             return render_template('producto_form.html', categorias=cats, sedes=sedes, responsables=resps, producto=None)
 
-        # Validación robusta para evitar el error de la cadena 'None'
+        # 🔥 Usamos la función auxiliar para no romper nunca
         categoria_val = request.form.get('categoria_id')
         sede_val = request.form.get('sede_id')
         responsable_val = request.form.get('responsable_id')
@@ -71,9 +93,9 @@ def nuevo_producto():
             precio_venta=float(request.form.get('precio_venta', 0) or 0),
             stock=int(request.form.get('stock', 0) or 0),
             stock_minimo=int(request.form.get('stock_minimo', 5) or 5),
-            categoria_id=int(categoria_val) if categoria_val and categoria_val != 'None' else None,
-            sede_id=int(sede_val) if sede_val and sede_val != 'None' else None,
-            responsable_id=int(responsable_val) if responsable_val and responsable_val != 'None' else None,
+            categoria_id=_parse_id(categoria_val),
+            sede_id=_parse_id(sede_val),
+            responsable_id=_parse_id(responsable_val),
             activo=True, fecha_ingreso=datetime.utcnow()
         )
         db.session.add(p)
@@ -101,14 +123,14 @@ def editar_producto(pid):
         p.stock         = int(request.form.get('stock', 0) or 0)
         p.stock_minimo  = int(request.form.get('stock_minimo', 5) or 5)
         
-        # Validación robusta para evitar el error de la cadena 'None'
+        # 🔥 Usamos la función auxiliar para no romper nunca
         categoria_val = request.form.get('categoria_id')
         sede_val = request.form.get('sede_id')
         responsable_val = request.form.get('responsable_id')
 
-        p.categoria_id  = int(categoria_val) if categoria_val and categoria_val != 'None' else None
-        p.sede_id       = int(sede_val) if sede_val and sede_val != 'None' else None
-        p.responsable_id= int(responsable_val) if responsable_val and responsable_val != 'None' else None
+        p.categoria_id  = _parse_id(categoria_val)
+        p.sede_id       = _parse_id(sede_val)
+        p.responsable_id= _parse_id(responsable_val)
         
         db.session.commit()
         flash(f'✅ Producto "{p.nombre}" actualizado', 'success')
