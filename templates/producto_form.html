@@ -372,6 +372,23 @@
     border-radius: 10px;
     margin-left: 6px;
   }
+
+  /* Estilos para impresión de etiquetas 32x25mm */
+  @media print {
+    .no-print { display: none !important; }
+    body { margin: 0; padding: 0; background: white; }
+    .etiqueta-impresion {
+      width: 32mm;
+      height: 25mm;
+      padding: 1.5mm 2mm;
+      margin: 0;
+      border: none !important;
+    }
+    @page {
+      size: 32mm 25mm;
+      margin: 0;
+    }
+  }
 </style>
 
 <div class="page-header">
@@ -418,7 +435,7 @@
             <button type="button" class="btn-download-barcode" onclick="descargarCodigo('png')">📥 Descargar PNG</button>
             <button type="button" class="btn-download-barcode svg" onclick="descargarCodigo('svg')">📥 Descargar SVG</button>
             <button type="button" class="btn-download-barcode pdf" onclick="descargarCodigo('pdf')">📥 Descargar PDF</button>
-            <button type="button" class="btn btn-outline btn-sm" onclick="imprimirCodigo()">🖨️ Imprimir</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="imprimirCodigo()">🖨️ Imprimir Etiqueta 32x25</button>
           </div>
         </div>
         
@@ -1131,6 +1148,10 @@ function descargarComoPDF(svgString, codigo) {
     .then(() => document.body.removeChild(container));
 }
 
+// ============================================================
+// IMPRIMIR ETIQUETA 32x25mm - OPTIMIZADO
+// ============================================================
+
 function imprimirCodigo() {
   const container = document.getElementById('barcodeContainer');
   if (!container) {
@@ -1138,18 +1159,209 @@ function imprimirCodigo() {
     return;
   }
   
-  const ventana = window.open('', '_blank', 'width=600,height=400');
+  // Obtener datos
+  const codigo = codigoActual;
+  const tipo = document.querySelector('input[name="barcode_type"]:checked').value;
+  const nombreProducto = document.querySelector('[name=nombre]').value || 'Producto';
+  
+  // Obtener el SVG del código
+  const svgElement = container.querySelector('svg');
+  let svgHTML = '';
+  if (svgElement) {
+    svgHTML = svgElement.outerHTML;
+    // Ajustar tamaño para etiqueta pequeña
+    svgHTML = svgHTML.replace(/width="[^"]*"/, 'width="26mm"');
+    svgHTML = svgHTML.replace(/height="[^"]*"/, 'height="12mm"');
+  }
+  
+  // Ventana de impresión optimizada para 32x25mm
+  const ventana = window.open('', '_blank', 'width=400,height=350');
   ventana.document.write(`
     <html>
-      <head><title>Imprimir Código</title></head>
-      <body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:white;">
-        ${container.outerHTML}
-        <script>window.onload = function() { window.print(); }<\/script>
+      <head>
+        <title>Imprimir Etiqueta 32x25mm</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 10px;
+          }
+          
+          /* ETIQUETA 32x25mm */
+          .etiqueta {
+            width: 32mm;
+            height: 25mm;
+            padding: 1.5mm 2mm;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 0.5px solid #ddd;
+            border-radius: 1mm;
+            box-sizing: border-box;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          
+          .etiqueta .codigo-svg {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          
+          .etiqueta .codigo-svg svg {
+            max-width: 26mm !important;
+            width: 26mm !important;
+            height: auto !important;
+            max-height: 13mm !important;
+          }
+          
+          .etiqueta .numero {
+            font-family: 'Courier New', monospace;
+            font-size: 7pt;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-align: center;
+            color: #000;
+            margin-top: 0.5mm;
+            line-height: 1;
+          }
+          
+          .etiqueta .tipo-label {
+            font-family: Arial, sans-serif;
+            font-size: 4pt;
+            color: #999;
+            text-align: center;
+            margin-top: 0.3mm;
+            letter-spacing: 0.5px;
+          }
+          
+          .etiqueta .producto-nombre {
+            font-family: Arial, sans-serif;
+            font-size: 5pt;
+            color: #666;
+            text-align: center;
+            margin-top: 0.3mm;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 28mm;
+          }
+          
+          .botones {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+          }
+          
+          .btn-print {
+            padding: 10px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+          }
+          
+          .btn-print:hover {
+            background: #45a049;
+          }
+          
+          .btn-cerrar {
+            padding: 10px 30px;
+            background: #666;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+          }
+          
+          .btn-cerrar:hover {
+            background: #555;
+          }
+          
+          /* CONFIGURACIÓN DE IMPRESIÓN */
+          @media print {
+            body { 
+              margin: 0; 
+              padding: 0; 
+              background: white;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+            }
+            
+            .etiqueta {
+              border: none !important;
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              width: 32mm !important;
+              height: 25mm !important;
+              padding: 1.5mm 2mm !important;
+              margin: 0 !important;
+            }
+            
+            .no-print { 
+              display: none !important; 
+            }
+            
+            @page {
+              size: 32mm 25mm;
+              margin: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <!-- ETIQUETA -->
+          <div class="etiqueta" id="etiquetaImpresion">
+            <div class="codigo-svg">
+              ${svgHTML || '<div style="color:red;font-size:10px;">Error: SVG no disponible</div>'}
+            </div>
+            <div class="numero">${codigo}</div>
+            <div class="producto-nombre">${nombreProducto}</div>
+            <div class="tipo-label">${tipo.toUpperCase()} · ${codigo.length} díg</div>
+          </div>
+          
+          <!-- BOTONES (no se imprimen) -->
+          <div class="botones no-print">
+            <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn-cerrar" onclick="window.close()">✕ Cerrar</button>
+          </div>
+          
+          <script>
+            // Auto-impresión (descomentar para impresión automática)
+            // window.onload = function() {
+            //   setTimeout(function() {
+            //     window.print();
+            //   }, 500);
+            // };
+            
+            // Cerrar después de imprimir (opcional)
+            // window.onafterprint = function() {
+            //   setTimeout(function() { window.close(); }, 1000);
+            // };
+          <\/script>
+        </div>
       </body>
     </html>
   `);
   ventana.document.close();
 }
+
+// ============================================================
+// NOTIFICACIONES
+// ============================================================
 
 function showNotification(message, type = 'info') {
   const colors = { success: '#00e676', error: '#ff4081', warning: '#f5c842', info: '#00e5ff' };
